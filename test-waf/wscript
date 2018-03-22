@@ -1,0 +1,42 @@
+
+def configure(cfg):
+	cfg.load("spinalcordtoolbox")
+
+
+def build(bld):
+
+	for contrast in ("t1", "t2"):
+
+		input = "sct_example_data/{contrast}/{contrast}.nii.gz".format(**locals())
+		cwd = bld.path.find_or_declare(contrast)
+		cwd.mkdir()
+
+		ps = bld.sct_propseg(
+		 input=input,
+		 contrast=contrast,
+		 cwd=cwd,
+		)
+		segmented = ps.segmented
+
+		lbl = bld.sct_label_vertebrae(
+		 input=input,
+		 segmented=segmented,
+		 contrast=contrast,
+		 cwd=cwd,
+		)
+		labeled = lbl.labeled
+
+		lblu = bld.sct_label_utils(
+		 input=labeled,
+		 vert_body=(2,5),
+		 cwd=cwd,
+		)
+		labels = lblu.labels
+
+		bld.sct_register_to_template(
+		 input=input,
+		 segmented=segmented,
+		 labels=labels,
+		 contrast=contrast,
+		 cwd=cwd,
+		)

@@ -69,8 +69,8 @@ def main(args=None):
     # initialization
     # note: mirror servers are listed in order of priority
     dict_url = {
-        'sct_example_data': ['https://osf.io/4nnk3/?action=download',
-                             'https://www.neuro.polymtl.ca/_media/downloads/sct/20170208_sct_example_data.zip'],
+        'sct_example_data': ['https://osf.io/kjcgs/?action=download',
+                             'https://www.neuro.polymtl.ca/_media/downloads/sct/20180525_sct_example_data.zip'],
         'sct_testing_data': ['https://osf.io/z8gaj/?action=download',
                              'https://www.neuro.polymtl.ca/_media/downloads/sct/20180125_sct_testing_data.zip'],
         'PAM50': ['https://osf.io/xz7jk/?action=download',
@@ -169,9 +169,15 @@ def download_data(urls, verbose):
             session.mount('https://', HTTPAdapter(max_retries=retry))
             response = session.get(url, stream=True)
 
-            _, content = cgi.parse_header(response.headers['Content-Disposition'])
-            tmp_path = os.path.join(tempfile.mkdtemp(), content['filename'])
-            sct.printv('Downloading %s...' % content['filename'], verbose)
+            if "Content-Disposition" in response.headers:
+                _, content = cgi.parse_header(response.headers['Content-Disposition'])
+                filename = content["filename"]
+            else:
+                sct.printv("Unexpected: link doesn't provide a filename", type="warning")
+                continue
+
+            tmp_path = os.path.join(tempfile.mkdtemp(), filename)
+            sct.printv('Downloading %s...' % filename, verbose)
 
             with open(tmp_path, 'wb') as tmp_file:
                 total = int(response.headers.get('content-length', 1))
@@ -188,8 +194,8 @@ def download_data(urls, verbose):
                 tqdm_bar.close()
             return tmp_path
 
-        except requests.RequestException as err:
-            sct.printv(err.message, type='warning')
+        except Exception as e:
+            sct.printv("Link download error, trying next mirror (error was: %s)" % e, type='warning')
     else:
         sct.printv('\nDownload error', type='error')
 

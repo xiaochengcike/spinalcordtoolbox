@@ -362,7 +362,14 @@ def test_function(param_test):
     sct.log.debug("Starting test function")
 
     # load modules of function to test
-    module_function_to_test = importlib.import_module(param_test.function_to_test)
+    # here we use try/except, because in some cases we want to be able to use sct_pipeline to launch pipelines based on
+    # shell scripts (not built-in SCT python functions). In that case, the function does not exist and we want to
+    # continue execution despite the import failing.
+    try:
+        module_function_to_test = importlib.import_module(param_test.function_to_test)
+    except ImportError as e:
+        sct.printv("ImportError: %s" % e, type='warning')
+
     module_testing = importlib.import_module('test_' + param_test.function_to_test)
 
     # retrieve subject name

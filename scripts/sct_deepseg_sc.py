@@ -24,6 +24,7 @@ import sct_utils as sct
 from msct_image import Image
 from msct_parser import Parser
 from sct_image import set_orientation
+from spinalcordtoolbox.deepseg_sc.cnn_models import nn_architecture_seg
 
 import spinalcordtoolbox.resample.nipy_resample
 
@@ -425,7 +426,6 @@ def _normalize_data(data, mean, std):
 
 def segment_2d(model_fname, contrast_type, input_size, fname_in, fname_out):
     """Segment data using 2D convolutions."""
-    from spinalcordtoolbox.deepseg_sc.cnn_models import nn_architecture_seg
     seg_model = nn_architecture_seg(height=input_size[0],
                                     width=input_size[1],
                                     depth=2 if contrast_type != 't2' else 3,

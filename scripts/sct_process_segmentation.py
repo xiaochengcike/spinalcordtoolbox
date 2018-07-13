@@ -28,10 +28,12 @@ from msct_image import Image
 from msct_parser import Parser
 import msct_shape
 from msct_types import Centerline
+from spinalcordtoolbox.utils import parse_num_list
 from spinalcordtoolbox.centerline import optic
 
 OUTPUT_CSA_VOLUME = 0  # on v3.2.2, this volume was output by default, which was a waste of time (people don't use it)
 OUTPUT_ANGLE_VOLUME = 0  # same as above
+
 
 class Param:
     def __init__(self):
@@ -51,7 +53,8 @@ def get_parser():
     """
     # Initialize the parser
     parser = Parser(__file__)
-    parser.usage.set_description("""This program is used to get the centerline of the spinal cord of a subject by using one of the three methods describe in the -method flag .""")
+    parser.usage.set_description(
+        """This program is used to get the centerline of the spinal cord of a subject by using one of the three methods describe in the -method flag .""")
     parser.add_option(name='-i',
                       type_value='image_nifti',
                       description='Spinal Cord segmentation',
@@ -98,18 +101,18 @@ def get_parser():
                       deprecated_by='-size')
     parser.add_option(name='-z',
                       type_value='str',
-                      description= 'Slice range to compute the CSA across (requires \"-p csa\").',
+                      description='Slice range to compute the CSA across (requires \"-p csa\").',
                       mandatory=False,
                       example='5:23')
     parser.add_option(name='-l',
                       type_value='str',
-                      description= 'Vertebral levels to compute the CSA across (requires \"-p csa\"). Example: 2:9 for C2 to T2.',
+                      description='Vertebral levels to compute the CSA across (requires \"-p csa\"). Example: 2:9 for C2 to T2.',
                       mandatory=False,
                       deprecated_by='-vert',
                       example='2:9')
     parser.add_option(name='-vert',
                       type_value='str',
-                      description= 'Vertebral levels to compute the CSA across (requires \"-p csa\"). Example: 2:9 for C2 to T2.',
+                      description='Vertebral levels to compute the CSA across (requires \"-p csa\"). Example: 2:9 for C2 to T2.',
                       mandatory=False,
                       example='2:9')
     parser.add_option(name='-t',
@@ -128,7 +131,7 @@ def get_parser():
                       mandatory=False)
     parser.add_option(name='-r',
                       type_value='multiple_choice',
-                      description= 'Removes the temporary folder and debug folder used for the algorithm at the end of execution',
+                      description='Removes the temporary folder and debug folder used for the algorithm at the end of execution',
                       mandatory=False,
                       default_value='1',
                       example=['0', '1'])
@@ -139,7 +142,7 @@ def get_parser():
                       default_value=0)
     parser.add_option(name='-a',
                       type_value='multiple_choice',
-                      description= 'Algorithm for curve fitting.',
+                      description='Algorithm for curve fitting.',
                       mandatory=False,
                       default_value='nurbs',
                       example=['hanning', 'nurbs'])
@@ -171,7 +174,6 @@ def get_parser():
 
 
 def main(args):
-
     parser = get_parser()
     arguments = parser.parse(args)
     param = Param()
@@ -233,12 +235,16 @@ def main(args):
     sct.printv('.. segmentation file:             ' + fname_segmentation)
 
     if name_process == 'centerline':
-        fname_output = extract_centerline(fname_segmentation, remove_temp_files, verbose=param.verbose, algo_fitting=param.algo_fitting, use_phys_coord=use_phys_coord)
+        fname_output = extract_centerline(fname_segmentation, remove_temp_files, verbose=param.verbose,
+                                          algo_fitting=param.algo_fitting, use_phys_coord=use_phys_coord)
         sct.copy(fname_output, output_folder)
-        sct.display_viewer_syntax([fname_segmentation, os.path.join(output_folder, fname_output)], colormaps=['gray', 'red'], opacities=['', '1'])
+        sct.display_viewer_syntax([fname_segmentation, os.path.join(output_folder, fname_output)],
+                                  colormaps=['gray', 'red'], opacities=['', '1'])
 
     if name_process == 'csa':
-        compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_temp_files, slices, vert_lev, fname_vertebral_labeling, algo_fitting=param.algo_fitting, type_window=param.type_window, window_length=param.window_length, angle_correction=angle_correction, use_phys_coord=use_phys_coord)
+        compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_temp_files, slices, vert_lev,
+                    fname_vertebral_labeling, algo_fitting=param.algo_fitting, type_window=param.type_window,
+                    window_length=param.window_length, angle_correction=angle_correction, use_phys_coord=use_phys_coord)
 
     if name_process == 'label-vert':
         if '-discfile' in arguments:
@@ -248,18 +254,21 @@ def main(args):
         label_vert(fname_segmentation, fname_disc_label)
 
     if name_process == 'length':
-        result_length = compute_length(fname_segmentation, remove_temp_files, output_folder, overwrite, slices, vert_lev, fname_vertebral_labeling, verbose=verbose)
+        result_length = compute_length(fname_segmentation, remove_temp_files, output_folder, overwrite, slices,
+                                       vert_lev, fname_vertebral_labeling, verbose=verbose)
 
     if name_process == 'shape':
         fname_disks = None
         if '-discfile' in arguments:
             fname_disks = arguments['-discfile']
-        compute_shape(fname_segmentation, remove_temp_files, output_folder, overwrite, slices, vert_lev, fname_disks=fname_disks, verbose=verbose)
+        compute_shape(fname_segmentation, remove_temp_files, output_folder, overwrite, slices, vert_lev,
+                      fname_disks=fname_disks, verbose=verbose)
 
     # End of Main
 
 
-def compute_shape(fname_segmentation, remove_temp_files, output_folder, overwrite, slices, vert_levels, fname_disks=None, verbose=1):
+def compute_shape(fname_segmentation, remove_temp_files, output_folder, overwrite, slices, vert_levels,
+                  fname_disks=None, verbose=1):
     """
     This function characterizes the shape of the spinal cord, based on the segmentation
     Shape properties are computed along the spinal cord and averaged per z-slices.
@@ -308,7 +317,9 @@ def compute_shape(fname_segmentation, remove_temp_files, output_folder, overwrit
     for property_name in property_list:
         averaged_shape[property_name] = []
         for label in sorting_values:
-            averaged_shape[property_name].append(np.mean([item for i, item in enumerate(shape_properties[property_name]) if shape_properties[sorting_mode][i] == label]))
+            averaged_shape[property_name].append(np.mean(
+                [item for i, item in enumerate(shape_properties[property_name]) if
+                 shape_properties[sorting_mode][i] == label]))
 
     # save spinal cord shape properties
     df_shape_properties = pd.DataFrame(averaged_shape, index=sorting_values)
@@ -325,7 +336,8 @@ def compute_shape(fname_segmentation, remove_temp_files, output_folder, overwrit
 
 # compute the length of the spinal cord
 # ==========================================================================================
-def compute_length(fname_segmentation, remove_temp_files, output_folder, overwrite, slices, vert_levels, fname_vertebral_labeling='', verbose = 0):
+def compute_length(fname_segmentation, remove_temp_files, output_folder, overwrite, slices, vert_levels,
+                   fname_vertebral_labeling='', verbose=0):
     from math import sqrt
 
     # Extract path, file and extension
@@ -366,7 +378,8 @@ def compute_length(fname_segmentation, remove_temp_files, output_folder, overwri
 
     # smooth segmentation/centerline
     x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv = smooth_centerline(
-        fname_segmentation_orient, nurbs_pts_number=3000, phys_coordinates=False, all_slices=True, algo_fitting='nurbs', verbose=verbose)
+        fname_segmentation_orient, nurbs_pts_number=3000, phys_coordinates=False, all_slices=True, algo_fitting='nurbs',
+        verbose=verbose)
 
     # average csa across vertebral levels or slices if asked (flag -z or -l)
     if slices or vert_levels:
@@ -387,7 +400,9 @@ def compute_length(fname_segmentation, remove_temp_files, output_folder, overwri
 
             # get the slices corresponding to the vertebral levels
             # slices, vert_levels_list, warning = get_slices_matching_with_vertebral_levels(data_seg, vert_levels, im_vertebral_labeling.data, 1)
-            slices, vert_levels_list, warning = get_slices_matching_with_vertebral_levels_based_centerline(vert_levels, im_vertebral_labeling.data, z_centerline)
+            slices, vert_levels_list, warning = get_slices_matching_with_vertebral_levels_based_centerline(vert_levels,
+                                                                                                           im_vertebral_labeling.data,
+                                                                                                           z_centerline)
 
         elif not vert_levels:
             vert_levels_list = []
@@ -407,7 +422,9 @@ def compute_length(fname_segmentation, remove_temp_files, output_folder, overwri
             length = 0.0
             for i in range(len(x_centerline_fit) - 1):
                 if z_centerline[i] in slices_list:
-                    length += sqrt(((x_centerline_fit[i + 1] - x_centerline_fit[i]) * px)**2 + ((y_centerline_fit[i + 1] - y_centerline_fit[i]) * py)**2 + ((z_centerline[i + 1] - z_centerline[i]) * pz)**2)
+                    length += sqrt(((x_centerline_fit[i + 1] - x_centerline_fit[i]) * px) ** 2 + (
+                                (y_centerline_fit[i + 1] - y_centerline_fit[i]) * py) ** 2 + (
+                                               (z_centerline[i + 1] - z_centerline[i]) * pz) ** 2)
 
         sct.printv('\nLength of the segmentation = ' + str(round(length, 2)) + ' mm\n', verbose, 'info')
 
@@ -417,18 +434,23 @@ def compute_length(fname_segmentation, remove_temp_files, output_folder, overwri
                      warning_vert_levels=warning)
 
     elif (not (slices or vert_levels)) and (overwrite == 1):
-        sct.printv('WARNING: Flag \"-overwrite\" is only available if you select (a) slice(s) or (a) vertebral level(s) (flag -z or -vert) ==> CSA estimation per slice will be output in .csv files only.', type='warning')
+        sct.printv(
+            'WARNING: Flag \"-overwrite\" is only available if you select (a) slice(s) or (a) vertebral level(s) (flag -z or -vert) ==> CSA estimation per slice will be output in .csv files only.',
+            type='warning')
         length = np.nan
 
     else:
         # compute length of full centerline
         length = 0.0
         for i in range(len(x_centerline_fit) - 1):
-            length += sqrt(((x_centerline_fit[i + 1] - x_centerline_fit[i]) * px)**2 + ((y_centerline_fit[i + 1] - y_centerline_fit[i]) * py)**2 + ((z_centerline[i + 1] - z_centerline[i]) * pz)**2)
+            length += sqrt(((x_centerline_fit[i + 1] - x_centerline_fit[i]) * px) ** 2 + (
+                        (y_centerline_fit[i + 1] - y_centerline_fit[i]) * py) ** 2 + (
+                                       (z_centerline[i + 1] - z_centerline[i]) * pz) ** 2)
 
         sct.printv('\nLength of the segmentation = ' + str(round(length, 2)) + ' mm\n', verbose, 'info')
         # write result into output file
-        save_results(os.path.join(output_folder, 'length'), overwrite, fname_segmentation, 'length', '(in mm)', length, np.nan,
+        save_results(os.path.join(output_folder, 'length'), overwrite, fname_segmentation, 'length', '(in mm)', length,
+                     np.nan,
                      slices, actual_vert=[], warning_vert_levels='')
 
     # come back
@@ -444,8 +466,8 @@ def compute_length(fname_segmentation, remove_temp_files, output_folder, overwri
 
 # extract_centerline
 # ==========================================================================================
-def extract_centerline(fname_segmentation, remove_temp_files, verbose = 0, algo_fitting = 'hanning', type_window = 'hanning', window_length = 80, use_phys_coord=True):
-
+def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fitting='hanning', type_window='hanning',
+                       window_length=80, use_phys_coord=True):
     # Extract path, file and extension
     fname_segmentation = os.path.abspath(fname_segmentation)
     path_data, file_data, ext_data = sct.extract_fname(fname_segmentation)
@@ -511,21 +533,29 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose = 0, algo_
     # extract centerline and smooth it
     if use_phys_coord:
         # fit centerline, smooth it and return the first derivative (in physical space)
-        x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv = smooth_centerline('segmentation_RPI.nii.gz', algo_fitting=algo_fitting, type_window=type_window, window_length=window_length, nurbs_pts_number=3000, phys_coordinates=True, verbose=verbose, all_slices=False)
-        centerline = Centerline(x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv)
+        x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv = smooth_centerline(
+            'segmentation_RPI.nii.gz', algo_fitting=algo_fitting, type_window=type_window, window_length=window_length,
+            nurbs_pts_number=3000, phys_coordinates=True, verbose=verbose, all_slices=False)
+        centerline = Centerline(x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv,
+                                y_centerline_deriv, z_centerline_deriv)
 
         # average centerline coordinates over slices of the image
-        x_centerline_fit_rescorr, y_centerline_fit_rescorr, z_centerline_rescorr, x_centerline_deriv_rescorr, y_centerline_deriv_rescorr, z_centerline_deriv_rescorr = centerline.average_coordinates_over_slices(im_seg)
+        x_centerline_fit_rescorr, y_centerline_fit_rescorr, z_centerline_rescorr, x_centerline_deriv_rescorr, y_centerline_deriv_rescorr, z_centerline_deriv_rescorr = centerline.average_coordinates_over_slices(
+            im_seg)
 
         # compute z_centerline in image coordinates for usage in vertebrae mapping
-        voxel_coordinates = im_seg.transfo_phys2pix([[x_centerline_fit_rescorr[i], y_centerline_fit_rescorr[i], z_centerline_rescorr[i]] for i in range(len(z_centerline_rescorr))])
+        voxel_coordinates = im_seg.transfo_phys2pix(
+            [[x_centerline_fit_rescorr[i], y_centerline_fit_rescorr[i], z_centerline_rescorr[i]] for i in
+             range(len(z_centerline_rescorr))])
         x_centerline_voxel = [coord[0] for coord in voxel_coordinates]
         y_centerline_voxel = [coord[1] for coord in voxel_coordinates]
         z_centerline_voxel = [coord[2] for coord in voxel_coordinates]
 
     else:
         # fit centerline, smooth it and return the first derivative (in voxel space but FITTED coordinates)
-        x_centerline_voxel, y_centerline_voxel, z_centerline_voxel, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv = smooth_centerline('segmentation_RPI.nii.gz', algo_fitting=algo_fitting, type_window=type_window, window_length=window_length, nurbs_pts_number=3000, phys_coordinates=False, verbose=verbose, all_slices=True)
+        x_centerline_voxel, y_centerline_voxel, z_centerline_voxel, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv = smooth_centerline(
+            'segmentation_RPI.nii.gz', algo_fitting=algo_fitting, type_window=type_window, window_length=window_length,
+            nurbs_pts_number=3000, phys_coordinates=False, verbose=verbose, all_slices=True)
 
     if verbose == 2:
         import matplotlib.pyplot as plt
@@ -557,7 +587,8 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose = 0, algo_
     # Create an image with the centerline
     min_z_index, max_z_index = int(round(min(z_centerline_voxel))), int(round(max(z_centerline_voxel)))
     for iz in range(min_z_index, max_z_index + 1):
-        data[int(round(x_centerline_voxel[iz - min_z_index])), int(round(y_centerline_voxel[iz - min_z_index])), int(iz)] = 1  # if index is out of bounds here for hanning: either the segmentation has holes or labels have been added to the file
+        data[int(round(x_centerline_voxel[iz - min_z_index])), int(round(y_centerline_voxel[iz - min_z_index])), int(
+            iz)] = 1  # if index is out of bounds here for hanning: either the segmentation has holes or labels have been added to the file
     # Write the centerline image in RPI orientation
     # hdr.set_data_dtype('uint8') # set imagetype to uint8
     sct.printv('\nWrite NIFTI volumes...', verbose)
@@ -577,7 +608,8 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose = 0, algo_
     sct.printv('\nWrite text file...', verbose)
     file_results = open(name_output_txt, 'w')
     for i in range(min_z_index, max_z_index + 1):
-        file_results.write(str(int(i)) + ' ' + str(x_centerline_voxel[i - min_z_index]) + ' ' + str(y_centerline_voxel[i - min_z_index]) + '\n')
+        file_results.write(str(int(i)) + ' ' + str(x_centerline_voxel[i - min_z_index]) + ' ' + str(
+            y_centerline_voxel[i - min_z_index]) + '\n')
     file_results.close()
 
     # create a .roi file
@@ -604,7 +636,10 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose = 0, algo_
 
 # compute_csa
 # ==========================================================================================
-def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_temp_files, slices, vert_levels, fname_vertebral_labeling='', algo_fitting='hanning', type_window='hanning', window_length=80, angle_correction=True, use_phys_coord=True):
+def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_temp_files, slices, vert_levels,
+                fname_vertebral_labeling='', algo_fitting='hanning', type_window='hanning', window_length=80,
+                angle_correction=True, use_phys_coord=True):
+    # TODO: do everything in RAM instead of adding unecessary i/o
 
     # Extract path, file and extension
     fname_segmentation = os.path.abspath(fname_segmentation)
@@ -643,21 +678,29 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
     # with option -vert). See #1791
     if use_phys_coord:
         # fit centerline, smooth it and return the first derivative (in physical space)
-        x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv = smooth_centerline('segmentation_RPI.nii.gz', algo_fitting=algo_fitting, type_window=type_window, window_length=window_length, nurbs_pts_number=3000, phys_coordinates=True, verbose=verbose, all_slices=False)
-        centerline = Centerline(x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv)
+        x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv = smooth_centerline(
+            'segmentation_RPI.nii.gz', algo_fitting=algo_fitting, type_window=type_window, window_length=window_length,
+            nurbs_pts_number=3000, phys_coordinates=True, verbose=verbose, all_slices=False)
+        centerline = Centerline(x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv,
+                                y_centerline_deriv, z_centerline_deriv)
 
         # average centerline coordinates over slices of the image
-        x_centerline_fit_rescorr, y_centerline_fit_rescorr, z_centerline_rescorr, x_centerline_deriv_rescorr, y_centerline_deriv_rescorr, z_centerline_deriv_rescorr = centerline.average_coordinates_over_slices(im_seg)
+        x_centerline_fit_rescorr, y_centerline_fit_rescorr, z_centerline_rescorr, x_centerline_deriv_rescorr, y_centerline_deriv_rescorr, z_centerline_deriv_rescorr = centerline.average_coordinates_over_slices(
+            im_seg)
 
         # compute Z axis of the image, in physical coordinate
         axis_X, axis_Y, axis_Z = im_seg.get_directions()
 
         # compute z_centerline in image coordinates for usage in vertebrae mapping
-        z_centerline_voxel = [coord[2] for coord in im_seg.transfo_phys2pix([[x_centerline_fit_rescorr[i], y_centerline_fit_rescorr[i], z_centerline_rescorr[i]] for i in range(len(z_centerline_rescorr))])]
+        z_centerline_voxel = [coord[2] for coord in im_seg.transfo_phys2pix(
+            [[x_centerline_fit_rescorr[i], y_centerline_fit_rescorr[i], z_centerline_rescorr[i]] for i in
+             range(len(z_centerline_rescorr))])]
 
     else:
         # fit centerline, smooth it and return the first derivative (in voxel space but FITTED coordinates)
-        x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv = smooth_centerline('segmentation_RPI.nii.gz', algo_fitting=algo_fitting, type_window=type_window, window_length=window_length, nurbs_pts_number=3000, phys_coordinates=False, verbose=verbose, all_slices=True)
+        x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv = smooth_centerline(
+            'segmentation_RPI.nii.gz', algo_fitting=algo_fitting, type_window=type_window, window_length=window_length,
+            nurbs_pts_number=3000, phys_coordinates=False, verbose=verbose, all_slices=True)
 
         # correct centerline fitted coordinates according to the data resolution
         x_centerline_fit_rescorr, y_centerline_fit_rescorr, z_centerline_rescorr, x_centerline_deriv_rescorr, y_centerline_deriv_rescorr, z_centerline_deriv_rescorr = x_centerline_fit * px, y_centerline_fit * py, z_centerline * pz, x_centerline_deriv * px, y_centerline_deriv * py, z_centerline_deriv * pz
@@ -679,10 +722,14 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
             # in the case of problematic segmentation (e.g., non continuous segmentation often at the extremities), display a warning but do not crash
             try:
                 # normalize the tangent vector to the centerline (i.e. its derivative)
-                tangent_vect = normalize(np.array([x_centerline_deriv_rescorr[iz - min_z_index], y_centerline_deriv_rescorr[iz - min_z_index], z_centerline_deriv_rescorr[iz - min_z_index]]))
+                tangent_vect = normalize(np.array(
+                    [x_centerline_deriv_rescorr[iz - min_z_index], y_centerline_deriv_rescorr[iz - min_z_index],
+                     z_centerline_deriv_rescorr[iz - min_z_index]]))
 
             except IndexError:
-                sct.printv('WARNING: Your segmentation does not seem continuous, which could cause wrong estimations at the problematic slices. Please check it, especially at the extremities.', type='warning')
+                sct.printv(
+                    'WARNING: Your segmentation does not seem continuous, which could cause wrong estimations at the problematic slices. Please check it, especially at the extremities.',
+                    type='warning')
 
             # compute the angle between the normal vector of the plane and the vector z
             angle = np.arccos(np.vdot(tangent_vect, axis_Z))
@@ -787,16 +834,62 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
     # come back to native directory
     os.chdir(curdir)
 
-    # Create output text file
-    sct.printv('Display CSA per slice:', verbose)
-    file_results = open(os.path.join(output_folder, 'csa_per_slice.txt'), 'w')
-    file_results.write('# Slice (z),CSA (mm^2),Angle with respect to the I-S direction (degrees)\n')
-    for i in range(min_z_index, max_z_index + 1):
-        file_results.write(str(int(i)) + ',' + str(csa[i - min_z_index]) + ',' + str(angles[i - min_z_index]) + '\n')
-        # Display results
-        sct.printv('z = %d, CSA = %f mm^2, Angle = %f deg' % (i, csa[i - min_z_index], angles[i - min_z_index]), type='info')
+    # if user specified slices of interest
+    if slices:
+        slices_list = parse_num_list(slices)
+    else:
+        slices_list = np.arange(nz).tolist()
+
+    # if perslice with slices: ['1', '2', '3', '4']
+    # important: each slice number should be separated by "," not ":"
+    slicegroups = [str(i) for i in slices_list]
+    perslice = 1  # TODO: define above
+    perlevel = 1  # TODO: define above
+    if not perslice and not perlevel:
+        # ['1,2,3,4,5,6']
+        slicegroups = [','.join(slicegroups)]
+
+    # if user selected vertebral levels and asked for each separate levels
+    # slicegroups = ['1,2', '3,4']
+    if vert_levels:
+        list_levels = parse_num_list(vert_levels)
+        # Re-define slices_of_interest according to the vertebral levels selected by user
+        slices_of_interest = []
+        for level in list_levels:
+            slices_of_interest.append(get_slices_from_vert_levels(im_vertebral_labeling, level))
+        # if users wants to output one metric per level
+        if perlevel:
+            # initialize slicegroups (will be redefined below)
+            slicegroups = []
+            # for each level, find the matching slices and group them
+            for ilevel in list_levels:
+                list_slices = get_slices_from_vert_levels(im_vertebral_labeling, ilevel)
+                slicegroups.append(','.join([str(i) for i in list_slices]))
+
+    # Create output csv file
+    # sct.printv('Display CSA per slice:', verbose)
+    # file_results = open(os.path.join(output_folder, 'csa_per_slice.txt'), 'w')
+    fname_out = "csa.csv"  # TODO: define above
+    file_results = open(fname_out, 'w')
+    file_results.write('Slice [z],CSA [mm^2],Angle between cord and S-I direction [deg]\n')
+    # loop across slice group
+    for slicegroup in slicegroups:
+        try:
+            # convert list of strings into list of int to use as index
+            ind_slicegroup = [int(i) for i in slicegroup.split(',')]
+            # average metrics within slicegroup
+            # TODO: ADD STD
+            file_results.write(
+                ','.join([str(int(i)), str(np.mean(csa[ind_slicegroup])), str(np.mean(angles[ind_slicegroup]))])+'\n')
+
+        except ValueError:
+            # the slice request is out of the range of the image
+            sct.printv('The slice(s) requested is out of the range of the image', type='warning')
+
     file_results.close()
-    sct.printv('Save results in: ' + os.path.join(output_folder, 'csa_per_slice.txt\n'), verbose)
+    # TODO: printout csv
+
+    # sct.printv('Save results in: ' + os.path.join(output_folder, 'csa_per_slice.txt\n'), verbose)
 
     # # Create output pickle file
     # # data frame format
@@ -817,7 +910,9 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
 
         warning = ''
         if vert_levels and not fname_vertebral_labeling:
-            sct.printv('\nERROR: You asked for specific vertebral levels (option -vert) but you did not provide any vertebral labeling file (see option -vertfile). The path to the vertebral labeling file is usually \"./label/template/PAM50_levels.nii.gz\". See usage.\n', 1, 'error')
+            sct.printv(
+                '\nERROR: You asked for specific vertebral levels (option -vert) but you did not provide any vertebral labeling file (see option -vertfile). The path to the vertebral labeling file is usually \"./label/template/PAM50_levels.nii.gz\". See usage.\n',
+                1, 'error')
 
         elif vert_levels and fname_vertebral_labeling:
             # from sct_extract_metric import get_slices_matching_with_vertebral_levels
@@ -832,7 +927,9 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
 
             # get the slices corresponding to the vertebral levels
             # slices, vert_levels_list, warning = get_slices_matching_with_vertebral_levels(data_seg, vert_levels, im_vertebral_labeling.data, 1)
-            slices, vert_levels_list, warning = get_slices_matching_with_vertebral_levels_based_centerline(vert_levels, im_vertebral_labeling.data, z_centerline_voxel)
+            slices, vert_levels_list, warning = get_slices_matching_with_vertebral_levels_based_centerline(vert_levels,
+                                                                                                           im_vertebral_labeling.data,
+                                                                                                           z_centerline_voxel)
 
         elif not vert_levels:
             vert_levels_list = []
@@ -849,7 +946,8 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
             # parse the selected slices
             slices_lim = slices.strip().split(':')
             slices_list = range(int(slices_lim[0]), int(slices_lim[-1]) + 1)
-            sct.printv('Average CSA across slices ' + str(slices_lim[0]) + ' to ' + str(slices_lim[-1]) + '...', type='info')
+            sct.printv('Average CSA across slices ' + str(slices_lim[0]) + ' to ' + str(slices_lim[-1]) + '...',
+                       type='info')
 
             CSA_for_selected_slices = []
             angles_for_selected_slices = []
@@ -872,23 +970,34 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
         sct.printv('Mean angle: ' + str(mean_angle) + ' +/- ' + str(std_angle) + ' degrees', type='info')
 
         # write result into output file
-        save_results(os.path.join(output_folder, 'csa_mean'), overwrite, fname_segmentation, 'CSA', 'nb_voxels x px x py x cos(theta) slice-by-slice (in mm^2)', mean_CSA, std_CSA, slices, actual_vert=vert_levels_list, warning_vert_levels=warning)
-        save_results(os.path.join(output_folder, 'angle_mean'), overwrite, fname_segmentation, 'Angle with respect to the I-S direction', 'Unit z vector compared to the unit tangent vector to the centerline at each slice (in degrees)', mean_angle, std_angle, slices, actual_vert=vert_levels_list, warning_vert_levels=warning)
+        save_results(os.path.join(output_folder, 'csa_mean'), overwrite, fname_segmentation, 'CSA',
+                     'nb_voxels x px x py x cos(theta) slice-by-slice (in mm^2)', mean_CSA, std_CSA, slices,
+                     actual_vert=vert_levels_list, warning_vert_levels=warning)
+        save_results(os.path.join(output_folder, 'angle_mean'), overwrite, fname_segmentation,
+                     'Angle with respect to the I-S direction',
+                     'Unit z vector compared to the unit tangent vector to the centerline at each slice (in degrees)',
+                     mean_angle, std_angle, slices, actual_vert=vert_levels_list, warning_vert_levels=warning)
 
         # compute volume between the selected slices
         if slices == '0':
             volume = 0.0
         else:
-            sct.printv('Compute the volume in between slices ' + str(slices_lim[0]) + ' to ' + str(slices_lim[-1]) + '...', type='info')
+            sct.printv(
+                'Compute the volume in between slices ' + str(slices_lim[0]) + ' to ' + str(slices_lim[-1]) + '...',
+                type='info')
             nb_vox = np.sum(data_seg[:, :, slices_list])
             volume = nb_vox * px * py * pz
         sct.printv('Volume in between the selected slices: ' + str(volume) + ' mm^3', type='info')
 
         # write result into output file
-        save_results(os.path.join(output_folder, 'csa_volume'), overwrite, fname_segmentation, 'volume', 'nb_voxels x px x py x pz (in mm^3)', volume, np.nan, slices, actual_vert=vert_levels_list, warning_vert_levels=warning)
+        save_results(os.path.join(output_folder, 'csa_volume'), overwrite, fname_segmentation, 'volume',
+                     'nb_voxels x px x py x pz (in mm^3)', volume, np.nan, slices, actual_vert=vert_levels_list,
+                     warning_vert_levels=warning)
 
     elif (not (slices or vert_levels)) and (overwrite == 1):
-        sct.printv('WARNING: Flag \"-overwrite\" is only available if you select (a) slice(s) or (a) vertebral level(s) (flag -z or -vert) ==> CSA estimation per slice will be output in .csv files only.', type='warning')
+        sct.printv(
+            'WARNING: Flag \"-overwrite\" is only available if you select (a) slice(s) or (a) vertebral level(s) (flag -z or -vert) ==> CSA estimation per slice will be output in .csv files only.',
+            type='warning')
 
     # Remove temporary files
     if remove_temp_files:
@@ -896,11 +1005,11 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
         sct.rmtree(path_tmp)
 
     # Sum up the output file names
-    sct.printv('\nOutput a nifti file of CSA values along the segmentation: ' + os.path.join(output_folder, 'csa_image.nii.gz'), verbose, 'info')
-    sct.printv('Output result text file of CSA per slice: ' + os.path.join(output_folder, 'csa_per_slice.txt'), verbose, 'info')
-    if slices or vert_levels:
-        # sct.printv('Output result files of the mean CSA across the selected slices: \n\t\t' + os.path.join(output_folder, 'csa_mean.txt') + '\n\t\t' + os.path.join(output_folder, 'csa_mean.xls') + '\n\t\t' + os.path.join(output_folder, 'csa_mean.pickle'), verbose, 'info')
-        # sct.printv('Output result files of the volume in between the selected slices: \n\t\t' + os.path.join(output_folder, 'csa_volume.txt') + '\n\t\t' + os.path.join(output_folder, 'csa_volume.xls') + '\n\t\t' + os.path.join(output_folder, 'csa_volume.pickle'), verbose, 'info')
+    # sct.printv('\nOutput a nifti file of CSA values along the segmentation: ' + os.path.join(output_folder, 'csa_image.nii.gz'), verbose, 'info')
+    # sct.printv('Output result text file of CSA per slice: ' + os.path.join(output_folder, 'csa_per_slice.txt'), verbose, 'info')
+    # if slices or vert_levels:
+    # sct.printv('Output result files of the mean CSA across the selected slices: \n\t\t' + os.path.join(output_folder, 'csa_mean.txt') + '\n\t\t' + os.path.join(output_folder, 'csa_mean.xls') + '\n\t\t' + os.path.join(output_folder, 'csa_mean.pickle'), verbose, 'info')
+    # sct.printv('Output result files of the volume in between the selected slices: \n\t\t' + os.path.join(output_folder, 'csa_volume.txt') + '\n\t\t' + os.path.join(output_folder, 'csa_volume.xls') + '\n\t\t' + os.path.join(output_folder, 'csa_volume.pickle'), verbose, 'info')
 
 
 def label_vert(fname_seg, fname_label, verbose=1):
@@ -937,8 +1046,8 @@ def label_vert(fname_seg, fname_label, verbose=1):
 # ======================================================================================================================
 # Save CSA or volume estimation in a .txt file
 # ======================================================================================================================
-def save_results(fname_output, overwrite, fname_data, metric_name, method, mean, std, slices_of_interest, actual_vert, warning_vert_levels):
-
+def save_results(fname_output, overwrite, fname_data, metric_name, method, mean, std, slices_of_interest, actual_vert,
+                 warning_vert_levels):
     # define vertebral levels and slices fields
     if actual_vert:
         vertebral_levels_field = str(int(actual_vert[0])) + ' to ' + str(int(actual_vert[1]))
@@ -987,7 +1096,9 @@ def save_results(fname_output, overwrite, fname_data, metric_name, method, mean,
     # Save results in a MS Excel file
     # if the user asked for no overwriting but the specified output file does not exist yet
     if (not overwrite) and (not os.path.isfile(fname_output + '.xls')):
-        sct.printv('WARNING: You asked to edit the pre-existing file \"' + fname_output + '.xls\" but this file does not exist. It will be created.', type='warning')
+        sct.printv(
+            'WARNING: You asked to edit the pre-existing file \"' + fname_output + '.xls\" but this file does not exist. It will be created.',
+            type='warning')
         overwrite = 1
 
     if not overwrite:
@@ -1055,7 +1166,6 @@ def save_results(fname_output, overwrite, fname_data, metric_name, method, mean,
 # Find min and max slices corresponding to vertebral levels based on the fitted centerline coordinates
 # ======================================================================================================================
 def get_slices_matching_with_vertebral_levels_based_centerline(vertebral_levels, vertebral_labeling_data, z_centerline):
-
     # Convert the selected vertebral levels chosen into a 2-element list [start_level end_level]
     vert_levels_list = [int(x) for x in vertebral_levels.split(':')]
 
@@ -1065,10 +1175,12 @@ def get_slices_matching_with_vertebral_levels_based_centerline(vertebral_levels,
 
     # Check if there are only two values [start_level, end_level] and if the end level is higher than the start level
     if (len(vert_levels_list) > 2) or (vert_levels_list[0] > vert_levels_list[1]):
-        sct.printv('\nERROR:  "' + vertebral_levels + '" is not correct. Enter format "1:4". Exit program.\n', type='error')
+        sct.printv('\nERROR:  "' + vertebral_levels + '" is not correct. Enter format "1:4". Exit program.\n',
+                   type='error')
 
     # Extract the vertebral levels available in the metric image
-    vertebral_levels_available = np.array(list(set(vertebral_labeling_data[vertebral_labeling_data > 0])), dtype=np.int32)
+    vertebral_levels_available = np.array(list(set(vertebral_labeling_data[vertebral_labeling_data > 0])),
+                                          dtype=np.int32)
 
     # Check if the vertebral levels selected are available
     warning = []  # list of strings gathering the potential following warning(s) to be written in the output .txt file
@@ -1085,10 +1197,10 @@ def get_slices_matching_with_vertebral_levels_based_centerline(vertebral_levels,
         vert_levels_list[0] = min_vert_level_available
         warning.append('WARNING: the bottom vertebral level you selected is lower to the lowest level available --> '
                        'Selected the lowest vertebral level available: ' + str(int(vert_levels_list[0])))  # record the
-                       # warning to write it later in the .txt output file
+        # warning to write it later in the .txt output file
         sct.printv('WARNING: the bottom vertebral level you selected is lower to the lowest ' \
-                                          'level available \n--> Selected the lowest vertebral level available: ' +\
-              str(int(vert_levels_list[0])), type='warning')
+                   'level available \n--> Selected the lowest vertebral level available: ' + \
+                   str(int(vert_levels_list[0])), type='warning')
 
     if vert_levels_list[1] > max_vert_level_available:
         vert_levels_list[1] = max_vert_level_available
@@ -1097,8 +1209,8 @@ def get_slices_matching_with_vertebral_levels_based_centerline(vertebral_levels,
         # warning to write it later in the .txt output file
 
         sct.printv('WARNING: the top vertebral level you selected is higher to the highest ' \
-                                          'level available \n--> Selected the highest vertebral level available: ' + \
-              str(int(vert_levels_list[1])), type='warning')
+                   'level available \n--> Selected the highest vertebral level available: ' + \
+                   str(int(vert_levels_list[1])), type='warning')
 
     if vert_levels_list[0] not in vertebral_levels_available:
         distance = vertebral_levels_available - vert_levels_list[0]  # relative distance
@@ -1109,7 +1221,7 @@ def get_slices_matching_with_vertebral_levels_based_centerline(vertebral_levels,
         warning.append('WARNING: the bottom vertebral level you selected is not available --> Selected the nearest '
                        'inferior level available: ' + str(int(vert_levels_list[0])))
         sct.printv('WARNING: the bottom vertebral level you selected is not available \n--> Selected the ' \
-                             'nearest inferior level available: ' + str(int(vert_levels_list[0])), type='warning')  # record the
+                   'nearest inferior level available: ' + str(int(vert_levels_list[0])), type='warning')  # record the
         # warning to write it later in the .txt output file
 
     if vert_levels_list[1] not in vertebral_levels_available:
@@ -1118,11 +1230,13 @@ def get_slices_matching_with_vertebral_levels_based_centerline(vertebral_levels,
         # relative distances
         vert_levels_list[1] = vertebral_levels_available[distance == distance_min_among_positive_value]  # element
         # of the initial list corresponding to this minimal distance
-        warning.append('WARNING: the top vertebral level you selected is not available --> Selected the nearest superior'
-                       ' level available: ' + str(int(vert_levels_list[1])))  # record the warning to write it later in the .txt output file
+        warning.append(
+            'WARNING: the top vertebral level you selected is not available --> Selected the nearest superior'
+            ' level available: ' + str(
+                int(vert_levels_list[1])))  # record the warning to write it later in the .txt output file
 
         sct.printv('WARNING: the top vertebral level you selected is not available \n--> Selected the ' \
-                             'nearest superior level available: ' + str(int(vert_levels_list[1])), type='warning')
+                   'nearest superior level available: ' + str(int(vert_levels_list[1])), type='warning')
 
     # Find slices included in the vertebral levels wanted by the user
     # if the median vertebral level of this slice is in the vertebral levels asked by the user, record the slice number
@@ -1143,41 +1257,42 @@ def get_slices_matching_with_vertebral_levels_based_centerline(vertebral_levels,
         vert_levels_list = None
         warning.append('\tError: no slices with corresponding vertebral levels were found.')
     else:
-        slices = str(min(matching_slices_centerline_vert_labeling)) + ':' + str(max(matching_slices_centerline_vert_labeling))
+        slices = str(min(matching_slices_centerline_vert_labeling)) + ':' + str(
+            max(matching_slices_centerline_vert_labeling))
         sct.printv('\t' + slices)
 
     return slices, vert_levels_list, warning
 
 
-#=======================================================================================================================
+# =======================================================================================================================
 # Normalization
-#=======================================================================================================================
+# =======================================================================================================================
 def normalize(vect):
     norm = np.linalg.norm(vect)
     return vect / norm
 
 
-#=======================================================================================================================
+# =======================================================================================================================
 # Ellipse fitting for a set of data
-#=======================================================================================================================
+# =======================================================================================================================
 # http://nicky.vanforeest.com/misc/fitEllipse/fitEllipse.html
 def Ellipse_fit(x, y):
     x = x[:, np.newaxis]
     y = y[:, np.newaxis]
-    D =  np.hstack((x * x, x * y, y * y, x, y, np.ones_like(x)))
+    D = np.hstack((x * x, x * y, y * y, x, y, np.ones_like(x)))
     S = np.dot(D.T, D)
     C = np.zeros([6, 6])
     C[0, 2] = C[2, 0] = 2
     C[1, 1] = -1
-    E, V =  np.linalg.eig(np.dot(np.linalg.inv(S), C))
+    E, V = np.linalg.eig(np.dot(np.linalg.inv(S), C))
     n = np.argmax(np.abs(E))
     a = V[:, n]
     return a
 
 
-#=======================================================================================================================
+# =======================================================================================================================
 # Getting a and b parameter for fitted ellipse
-#=======================================================================================================================
+# =======================================================================================================================
 def ellipse_dim(a):
     b, c, d, f, g, a = a[1] / 2, a[2], a[3] / 2, a[4] / 2, a[5], a[0]
     up = 2 * (a * f * f + c * d * d + g * b * b - 2 * b * d * f - a * c * g)
@@ -1188,17 +1303,16 @@ def ellipse_dim(a):
     return np.array([res1, res2])
 
 
-#=======================================================================================================================
+# =======================================================================================================================
 # Detect edges of an image
-#=======================================================================================================================
+# =======================================================================================================================
 def edge_detection(f):
-
     img = Image.open(f)  # grayscale
-    imgdata = np.array(img, dtype = float)
+    imgdata = np.array(img, dtype=float)
     G = imgdata
-    #G = ndi.filters.gaussian_filter(imgdata, sigma)
-    gradx = np.array(G, dtype = float)
-    grady = np.array(G, dtype = float)
+    # G = ndi.filters.gaussian_filter(imgdata, sigma)
+    gradx = np.array(G, dtype=float)
+    grady = np.array(G, dtype=float)
 
     mask_x = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
 
@@ -1209,7 +1323,6 @@ def edge_detection(f):
 
     for i in range(1, width - 1):
         for j in range(1, height - 1):
-
             px = np.sum(mask_x * G[(i - 1):(i + 1) + 1, (j - 1):(j + 1) + 1])
             py = np.sum(mask_y * G[(i - 1):(i + 1) + 1, (j - 1):(j + 1) + 1])
             gradx[i][j] = px

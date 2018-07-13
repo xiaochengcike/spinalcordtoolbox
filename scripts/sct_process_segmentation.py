@@ -30,6 +30,8 @@ import msct_shape
 from msct_types import Centerline
 from spinalcordtoolbox.centerline import optic
 
+OUTPUT_CSA_VOLUME = 0  # on v3.2.2, this volume was output by default, which was a waste of time (people don't use it)
+OUTPUT_ANGLE_VOLUME = 0  # same as above
 
 class Param:
     def __init__(self):
@@ -716,68 +718,74 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
     # else:
     #     sct.printv('.. No smoothing!', verbose)
 
-    # output volume of csa values
-    # TODO: only output if asked for (people don't use it)
-    sct.printv('\nCreate volume of CSA values...', verbose)
-    data_csa = data_seg.astype(np.float32, copy=False)
-    # loop across slices
-    for iz in range(min_z_index, max_z_index + 1):
-        # retrieve seg pixels
-        x_seg, y_seg = (data_csa[:, :, iz] > 0).nonzero()
-        seg = [[x_seg[i], y_seg[i]] for i in range(0, len(x_seg))]
-        # loop across pixels in segmentation
-        for i in seg:
-            # replace value with csa value
-            data_csa[i[0], i[1], iz] = csa[iz - min_z_index]
-    # replace data
-    im_seg.data = data_csa
-    # set original orientation
-    # TODO: FIND ANOTHER WAY!!
-    # im_seg.change_orientation(orientation) --> DOES NOT WORK!
-    # set file name -- use .gz because faster to write
-    im_seg.setFileName('csa_volume_RPI.nii.gz')
-    im_seg.changeType('float32')
-    # save volume
-    im_seg.save()
+    if OUTPUT_CSA_VOLUME:
+        # output volume of csa values
+        # TODO: only output if asked for (people don't use it)
+        sct.printv('\nCreate volume of CSA values...', verbose)
+        data_csa = data_seg.astype(np.float32, copy=False)
+        # loop across slices
+        for iz in range(min_z_index, max_z_index + 1):
+            # retrieve seg pixels
+            x_seg, y_seg = (data_csa[:, :, iz] > 0).nonzero()
+            seg = [[x_seg[i], y_seg[i]] for i in range(0, len(x_seg))]
+            # loop across pixels in segmentation
+            for i in seg:
+                # replace value with csa value
+                data_csa[i[0], i[1], iz] = csa[iz - min_z_index]
+        # replace data
+        im_seg.data = data_csa
+        # set original orientation
+        # TODO: FIND ANOTHER WAY!!
+        # im_seg.change_orientation(orientation) --> DOES NOT WORK!
+        # set file name -- use .gz because faster to write
+        im_seg.setFileName('csa_volume_RPI.nii.gz')
+        im_seg.changeType('float32')
+        # save volume
+        im_seg.save()
+        # get orientation of the input data
+        im_seg_original = Image('segmentation.nii.gz')
+        orientation = im_seg_original.orientation
+        sct.run(['sct_image', '-i', 'csa_volume_RPI.nii.gz', '-setorient', orientation, '-o',
+                 'csa_volume_in_initial_orientation.nii.gz'])
+        sct.generate_output_file(os.path.join(path_tmp, "csa_volume_in_initial_orientation.nii.gz"),
+                                 os.path.join(output_folder,
+                                              'csa_image.nii.gz'))  # extension already included in name_output
 
-    # output volume of angle values
-    # TODO: only output if asked for (people don't use it)
-    sct.printv('\nCreate volume of angle values...', verbose)
-    data_angle = data_seg.astype(np.float32, copy=False)
-    # loop across slices
-    for iz in range(min_z_index, max_z_index + 1):
-        # retrieve seg pixels
-        x_seg, y_seg = (data_angle[:, :, iz] > 0).nonzero()
-        seg = [[x_seg[i], y_seg[i]] for i in range(0, len(x_seg))]
-        # loop across pixels in segmentation
-        for i in seg:
-            # replace value with csa value
-            data_angle[i[0], i[1], iz] = angles[iz - min_z_index]
-    # replace data
-    im_seg.data = data_angle
-    # set original orientation
-    # TODO: FIND ANOTHER WAY!!
-    # im_seg.change_orientation(orientation) --> DOES NOT WORK!
-    # set file name -- use .gz because faster to write
-    im_seg.setFileName('angle_volume_RPI.nii.gz')
-    im_seg.changeType('float32')
-    # save volume
-    im_seg.save()
-
-    # get orientation of the input data
-    im_seg_original = Image('segmentation.nii.gz')
-    orientation = im_seg_original.orientation
-    sct.run(['sct_image', '-i', 'csa_volume_RPI.nii.gz', '-setorient', orientation, '-o', 'csa_volume_in_initial_orientation.nii.gz'])
-    sct.run(['sct_image', '-i', 'angle_volume_RPI.nii.gz', '-setorient', orientation, '-o', 'angle_volume_in_initial_orientation.nii.gz'])
+    if OUTPUT_ANGLE_VOLUME:
+        # output volume of angle values
+        # TODO: only output if asked for (people don't use it)
+        sct.printv('\nCreate volume of angle values...', verbose)
+        data_angle = data_seg.astype(np.float32, copy=False)
+        # loop across slices
+        for iz in range(min_z_index, max_z_index + 1):
+            # retrieve seg pixels
+            x_seg, y_seg = (data_angle[:, :, iz] > 0).nonzero()
+            seg = [[x_seg[i], y_seg[i]] for i in range(0, len(x_seg))]
+            # loop across pixels in segmentation
+            for i in seg:
+                # replace value with csa value
+                data_angle[i[0], i[1], iz] = angles[iz - min_z_index]
+        # replace data
+        im_seg.data = data_angle
+        # set original orientation
+        # TODO: FIND ANOTHER WAY!!
+        # im_seg.change_orientation(orientation) --> DOES NOT WORK!
+        # set file name -- use .gz because faster to write
+        im_seg.setFileName('angle_volume_RPI.nii.gz')
+        im_seg.changeType('float32')
+        # save volume
+        im_seg.save()
+        # get orientation of the input data
+        im_seg_original = Image('segmentation.nii.gz')
+        orientation = im_seg_original.orientation
+        sct.run(['sct_image', '-i', 'angle_volume_RPI.nii.gz', '-setorient', orientation, '-o',
+                 'angle_volume_in_initial_orientation.nii.gz'])
+        sct.generate_output_file(os.path.join(path_tmp, "angle_volume_in_initial_orientation.nii.gz"),
+                                 os.path.join(output_folder,
+                                              'angle_image.nii.gz'))  # extension already included in name_output
 
     # come back to native directory
     os.chdir(curdir)
-
-    # Generate output files
-    sct.printv('\nGenerate output files...', verbose)
-    sct.generate_output_file(os.path.join(path_tmp, "csa_volume_in_initial_orientation.nii.gz"), os.path.join(output_folder, 'csa_image.nii.gz'))  # extension already included in name_output
-    sct.generate_output_file(os.path.join(path_tmp, "angle_volume_in_initial_orientation.nii.gz"), os.path.join(output_folder, 'angle_image.nii.gz'))  # extension already included in name_output
-    sct.printv('\n')
 
     # Create output text file
     sct.printv('Display CSA per slice:', verbose)

@@ -15,7 +15,7 @@
 #########################################################################################
 # TODO: the import of scipy.misc imsave was moved to the specific cases (orth and ellipse) in order to avoid issue #62. This has to be cleaned in the future.
 
-import sys, io, os, shutil, time, math, pickle
+import sys, io, os, shutil, time, math
 
 import numpy as np
 import scipy
@@ -66,8 +66,7 @@ def get_parser():
                                   '  - angle_image.nii.gz: the cord segmentation (nifti file) where each slice\'s value is equal to the CSA (mm^2),\n'
                                   '  - csa_image.nii.gz: the cord segmentation (nifti file) where each slice\'s value is equal to the angle (in degrees) between the spinal cord centerline and the inferior-superior direction,\n'
                                   '  - csa_per_slice.txt: a CSV text file with z (1st column), CSA in mm^2 (2nd column) and angle with respect to the I-S direction in degrees (3rd column),\n'
-                                  '  - csa_per_slice.pickle: a pickle file with the same results as \"csa_per_slice.txt\" recorded in a DataFrame (panda structure) that can be reloaded afterwrds,\n'
-                                  '  - and if you select the options -z or -vert, csa_mean and csa_volume: mean CSA and volume across the selected slices or vertebral levels is ouptut in CSV text files, an MS Excel files and a pickle files.\n'
+                                  '  - and if you select the options -z or -vert, csa_mean and csa_volume: mean CSA and volume across the selected slices or vertebral levels is ouptut in CSV text files.\n'
                                   '- shape: compute spinal shape properties, using scikit-image region measures, including:\n'
                                   '  - AP and RL diameters\n'
                                   '  - ratio between AP and RL diameters\n'
@@ -416,7 +415,7 @@ def compute_length(fname_segmentation, remove_temp_files, output_folder, overwri
                      warning_vert_levels=warning)
 
     elif (not (slices or vert_levels)) and (overwrite == 1):
-        sct.printv('WARNING: Flag \"-overwrite\" is only available if you select (a) slice(s) or (a) vertebral level(s) (flag -z or -vert) ==> CSA estimation per slice will be output in .txt and .pickle files only.', type='warning')
+        sct.printv('WARNING: Flag \"-overwrite\" is only available if you select (a) slice(s) or (a) vertebral level(s) (flag -z or -vert) ==> CSA estimation per slice will be output in .csv files only.', type='warning')
         length = np.nan
 
     else:
@@ -718,6 +717,7 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
     #     sct.printv('.. No smoothing!', verbose)
 
     # output volume of csa values
+    # TODO: only output if asked for (people don't use it)
     sct.printv('\nCreate volume of CSA values...', verbose)
     data_csa = data_seg.astype(np.float32, copy=False)
     # loop across slices
@@ -740,7 +740,8 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
     # save volume
     im_seg.save()
 
-    # output volume of csa values
+    # output volume of angle values
+    # TODO: only output if asked for (people don't use it)
     sct.printv('\nCreate volume of angle values...', verbose)
     data_angle = data_seg.astype(np.float32, copy=False)
     # loop across slices
@@ -769,7 +770,7 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
     sct.run(['sct_image', '-i', 'csa_volume_RPI.nii.gz', '-setorient', orientation, '-o', 'csa_volume_in_initial_orientation.nii.gz'])
     sct.run(['sct_image', '-i', 'angle_volume_RPI.nii.gz', '-setorient', orientation, '-o', 'angle_volume_in_initial_orientation.nii.gz'])
 
-    # come back
+    # come back to native directory
     os.chdir(curdir)
 
     # Generate output files
@@ -789,19 +790,19 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
     file_results.close()
     sct.printv('Save results in: ' + os.path.join(output_folder, 'csa_per_slice.txt\n'), verbose)
 
-    # Create output pickle file
-    # data frame format
-    results_df = pd.DataFrame({'Slice (z)': range(min_z_index, max_z_index + 1),
-                               'CSA (mm^2)': csa,
-                               'Angle with respect to the I-S direction (degrees)': angles})
-    # # dictionary format
-    # results_df = {'Slice (z)': range(min_z_index, max_z_index+1),
+    # # Create output pickle file
+    # # data frame format
+    # results_df = pd.DataFrame({'Slice (z)': range(min_z_index, max_z_index + 1),
     #                            'CSA (mm^2)': csa,
-    #                            'Angle with respect to the I-S direction (degrees)': angles}
-    output_file = io.open(os.path.join(output_folder, 'csa_per_slice.pickle'), 'wb')
-    pickle.dump(results_df, output_file)
-    output_file.close()
-    sct.printv('Save results in: ' + os.path.join(output_folder, 'csa_per_slice.pickle\n'), verbose)
+    #                            'Angle with respect to the I-S direction (degrees)': angles})
+    # # # dictionary format
+    # # results_df = {'Slice (z)': range(min_z_index, max_z_index+1),
+    # #                            'CSA (mm^2)': csa,
+    # #                            'Angle with respect to the I-S direction (degrees)': angles}
+    # output_file = io.open(os.path.join(output_folder, 'csa_per_slice.pickle'), 'wb')
+    # pickle.dump(results_df, output_file)
+    # output_file.close()
+    # sct.printv('Save results in: ' + os.path.join(output_folder, 'csa_per_slice.pickle\n'), verbose)
 
     # average csa across vertebral levels or slices if asked (flag -z or -l)
     if slices or vert_levels:
@@ -879,7 +880,7 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
         save_results(os.path.join(output_folder, 'csa_volume'), overwrite, fname_segmentation, 'volume', 'nb_voxels x px x py x pz (in mm^3)', volume, np.nan, slices, actual_vert=vert_levels_list, warning_vert_levels=warning)
 
     elif (not (slices or vert_levels)) and (overwrite == 1):
-        sct.printv('WARNING: Flag \"-overwrite\" is only available if you select (a) slice(s) or (a) vertebral level(s) (flag -z or -vert) ==> CSA estimation per slice will be output in .txt and .pickle files only.', type='warning')
+        sct.printv('WARNING: Flag \"-overwrite\" is only available if you select (a) slice(s) or (a) vertebral level(s) (flag -z or -vert) ==> CSA estimation per slice will be output in .csv files only.', type='warning')
 
     # Remove temporary files
     if remove_temp_files:
@@ -890,8 +891,8 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
     sct.printv('\nOutput a nifti file of CSA values along the segmentation: ' + os.path.join(output_folder, 'csa_image.nii.gz'), verbose, 'info')
     sct.printv('Output result text file of CSA per slice: ' + os.path.join(output_folder, 'csa_per_slice.txt'), verbose, 'info')
     if slices or vert_levels:
-        sct.printv('Output result files of the mean CSA across the selected slices: \n\t\t' + os.path.join(output_folder, 'csa_mean.txt') + '\n\t\t' + os.path.join(output_folder, 'csa_mean.xls') + '\n\t\t' + os.path.join(output_folder, 'csa_mean.pickle'), verbose, 'info')
-        sct.printv('Output result files of the volume in between the selected slices: \n\t\t' + os.path.join(output_folder, 'csa_volume.txt') + '\n\t\t' + os.path.join(output_folder, 'csa_volume.xls') + '\n\t\t' + os.path.join(output_folder, 'csa_volume.pickle'), verbose, 'info')
+        # sct.printv('Output result files of the mean CSA across the selected slices: \n\t\t' + os.path.join(output_folder, 'csa_mean.txt') + '\n\t\t' + os.path.join(output_folder, 'csa_mean.xls') + '\n\t\t' + os.path.join(output_folder, 'csa_mean.pickle'), verbose, 'info')
+        # sct.printv('Output result files of the volume in between the selected slices: \n\t\t' + os.path.join(output_folder, 'csa_volume.txt') + '\n\t\t' + os.path.join(output_folder, 'csa_volume.xls') + '\n\t\t' + os.path.join(output_folder, 'csa_volume.pickle'), verbose, 'info')
 
 
 def label_vert(fname_seg, fname_label, verbose=1):
@@ -1025,21 +1026,21 @@ def save_results(fname_output, overwrite, fname_data, metric_name, method, mean,
 
     # Save results in a pickle file
     # write results in a dictionary
-    output_results = {}
-    output_results['Date - Time'] = time.strftime('%Y/%m/%d - %H:%M:%S')
-    output_results['File used for calculation'] = os.path.abspath(fname_data)
-    output_results['Metric'] = metric_name
-    output_results['Calculation method'] = method
-    output_results['Vertebral levels'] = vertebral_levels_field
-    output_results['Slices (z)'] = slices_of_interest_field
-    output_results['MEAN across slices'] = float(mean)
-    output_results['STDEV across slices'] = str(std)
+    # output_results = {}
+    # output_results['Date - Time'] = time.strftime('%Y/%m/%d - %H:%M:%S')
+    # output_results['File used for calculation'] = os.path.abspath(fname_data)
+    # output_results['Metric'] = metric_name
+    # output_results['Calculation method'] = method
+    # output_results['Vertebral levels'] = vertebral_levels_field
+    # output_results['Slices (z)'] = slices_of_interest_field
+    # output_results['MEAN across slices'] = float(mean)
+    # output_results['STDEV across slices'] = str(std)
 
     # save "output_results"
-    import pickle
-    output_file = open(fname_output + '.pickle', 'wb')
-    pickle.dump(output_results, output_file)
-    output_file.close()
+    # import pickle
+    # output_file = open(fname_output + '.pickle', 'wb')
+    # pickle.dump(output_results, output_file)
+    # output_file.close()
 
 
 # ======================================================================================================================

@@ -835,20 +835,20 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
     os.chdir(curdir)
 
     # if user specified slices of interest
+    slices = '2,3:10,11'
+    perslice = 0  # TODO: define above
+    perlevel = 0  # TODO: define above
     if slices:
         slices_list = parse_num_list(slices)
     else:
         slices_list = np.arange(nz).tolist()
-
     # if perslice with slices: ['1', '2', '3', '4']
     # important: each slice number should be separated by "," not ":"
     slicegroups = [str(i) for i in slices_list]
-    perslice = 1  # TODO: define above
-    perlevel = 1  # TODO: define above
+    # if users does not want to output metric per slice, then create a single element in slicegroups
     if not perslice and not perlevel:
         # ['1,2,3,4,5,6']
         slicegroups = [','.join(slicegroups)]
-
     # if user selected vertebral levels and asked for each separate levels
     # slicegroups = ['1,2', '3,4']
     if vert_levels:
@@ -865,7 +865,6 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
             for ilevel in list_levels:
                 list_slices = get_slices_from_vert_levels(im_vertebral_labeling, ilevel)
                 slicegroups.append(','.join([str(i) for i in list_slices]))
-
     # Create output csv file
     # sct.printv('Display CSA per slice:', verbose)
     # file_results = open(os.path.join(output_folder, 'csa_per_slice.txt'), 'w')
@@ -877,15 +876,15 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
         try:
             # convert list of strings into list of int to use as index
             ind_slicegroup = [int(i) for i in slicegroup.split(',')]
+            # change "," for ";" in slicegroup otherwise it will be parsed by the CSV format
+            slicegroup = slicegroup.replace(",", ";")
             # average metrics within slicegroup
             # TODO: ADD STD
             file_results.write(
-                ','.join([str(int(i)), str(np.mean(csa[ind_slicegroup])), str(np.mean(angles[ind_slicegroup]))])+'\n')
-
+                ','.join([slicegroup, str(np.mean(csa[ind_slicegroup])), str(np.mean(angles[ind_slicegroup]))]) + '\n')
         except ValueError:
             # the slice request is out of the range of the image
             sct.printv('The slice(s) requested is out of the range of the image', type='warning')
-
     file_results.close()
     # TODO: printout csv
 
@@ -906,98 +905,98 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
     # sct.printv('Save results in: ' + os.path.join(output_folder, 'csa_per_slice.pickle\n'), verbose)
 
     # average csa across vertebral levels or slices if asked (flag -z or -l)
-    if slices or vert_levels:
-
-        warning = ''
-        if vert_levels and not fname_vertebral_labeling:
-            sct.printv(
-                '\nERROR: You asked for specific vertebral levels (option -vert) but you did not provide any vertebral labeling file (see option -vertfile). The path to the vertebral labeling file is usually \"./label/template/PAM50_levels.nii.gz\". See usage.\n',
-                1, 'error')
-
-        elif vert_levels and fname_vertebral_labeling:
-            # from sct_extract_metric import get_slices_matching_with_vertebral_levels
-            sct.printv('Selected vertebral levels... ' + vert_levels)
-
-            # check if vertebral labeling file exists
-            sct.check_file_exist(fname_vertebral_labeling)
-
-            # convert the vertebral labeling file to RPI orientation
-            im_vertebral_labeling = Image(fname_vertebral_labeling)
-            im_vertebral_labeling.change_orientation(orientation='RPI')
-
-            # get the slices corresponding to the vertebral levels
-            # slices, vert_levels_list, warning = get_slices_matching_with_vertebral_levels(data_seg, vert_levels, im_vertebral_labeling.data, 1)
-            slices, vert_levels_list, warning = get_slices_matching_with_vertebral_levels_based_centerline(vert_levels,
-                                                                                                           im_vertebral_labeling.data,
-                                                                                                           z_centerline_voxel)
-
-        elif not vert_levels:
-            vert_levels_list = []
-
-        if slices is None:
-            mean_CSA = 0.0
-            std_CSA = 0.0
-            mean_angle = 0.0
-            std_angle = 0.0
-            slices = '0'
-            vert_levels_list = []
-
-        else:
-            # parse the selected slices
-            slices_lim = slices.strip().split(':')
-            slices_list = range(int(slices_lim[0]), int(slices_lim[-1]) + 1)
-            sct.printv('Average CSA across slices ' + str(slices_lim[0]) + ' to ' + str(slices_lim[-1]) + '...',
-                       type='info')
-
-            CSA_for_selected_slices = []
-            angles_for_selected_slices = []
-            # Read the file csa_per_slice.txt and get the CSA for the selected slices
-            with io.open(os.path.join(output_folder, 'csa_per_slice.txt')) as openfile:
-                for line in openfile:
-                    if line[0] != '#':
-                        line_split = line.strip().split(',')
-                        if int(line_split[0]) in slices_list:
-                            CSA_for_selected_slices.append(float(line_split[1]))
-                            angles_for_selected_slices.append(float(line_split[2]))
-
-            # average the CSA and angle
-            mean_CSA = np.mean(np.asarray(CSA_for_selected_slices))
-            std_CSA = np.std(np.asarray(CSA_for_selected_slices))
-            mean_angle = np.mean(np.asarray(angles_for_selected_slices))
-            std_angle = np.std(np.asarray(angles_for_selected_slices))
-
-        sct.printv('Mean CSA: ' + str(mean_CSA) + ' +/- ' + str(std_CSA) + ' mm^2', type='info')
-        sct.printv('Mean angle: ' + str(mean_angle) + ' +/- ' + str(std_angle) + ' degrees', type='info')
-
-        # write result into output file
-        save_results(os.path.join(output_folder, 'csa_mean'), overwrite, fname_segmentation, 'CSA',
-                     'nb_voxels x px x py x cos(theta) slice-by-slice (in mm^2)', mean_CSA, std_CSA, slices,
-                     actual_vert=vert_levels_list, warning_vert_levels=warning)
-        save_results(os.path.join(output_folder, 'angle_mean'), overwrite, fname_segmentation,
-                     'Angle with respect to the I-S direction',
-                     'Unit z vector compared to the unit tangent vector to the centerline at each slice (in degrees)',
-                     mean_angle, std_angle, slices, actual_vert=vert_levels_list, warning_vert_levels=warning)
-
-        # compute volume between the selected slices
-        if slices == '0':
-            volume = 0.0
-        else:
-            sct.printv(
-                'Compute the volume in between slices ' + str(slices_lim[0]) + ' to ' + str(slices_lim[-1]) + '...',
-                type='info')
-            nb_vox = np.sum(data_seg[:, :, slices_list])
-            volume = nb_vox * px * py * pz
-        sct.printv('Volume in between the selected slices: ' + str(volume) + ' mm^3', type='info')
-
-        # write result into output file
-        save_results(os.path.join(output_folder, 'csa_volume'), overwrite, fname_segmentation, 'volume',
-                     'nb_voxels x px x py x pz (in mm^3)', volume, np.nan, slices, actual_vert=vert_levels_list,
-                     warning_vert_levels=warning)
-
-    elif (not (slices or vert_levels)) and (overwrite == 1):
-        sct.printv(
-            'WARNING: Flag \"-overwrite\" is only available if you select (a) slice(s) or (a) vertebral level(s) (flag -z or -vert) ==> CSA estimation per slice will be output in .csv files only.',
-            type='warning')
+    # if slices or vert_levels:
+    #
+    #     warning = ''
+    #     if vert_levels and not fname_vertebral_labeling:
+    #         sct.printv(
+    #             '\nERROR: You asked for specific vertebral levels (option -vert) but you did not provide any vertebral labeling file (see option -vertfile). The path to the vertebral labeling file is usually \"./label/template/PAM50_levels.nii.gz\". See usage.\n',
+    #             1, 'error')
+    #
+    #     elif vert_levels and fname_vertebral_labeling:
+    #         # from sct_extract_metric import get_slices_matching_with_vertebral_levels
+    #         sct.printv('Selected vertebral levels... ' + vert_levels)
+    #
+    #         # check if vertebral labeling file exists
+    #         sct.check_file_exist(fname_vertebral_labeling)
+    #
+    #         # convert the vertebral labeling file to RPI orientation
+    #         im_vertebral_labeling = Image(fname_vertebral_labeling)
+    #         im_vertebral_labeling.change_orientation(orientation='RPI')
+    #
+    #         # get the slices corresponding to the vertebral levels
+    #         # slices, vert_levels_list, warning = get_slices_matching_with_vertebral_levels(data_seg, vert_levels, im_vertebral_labeling.data, 1)
+    #         slices, vert_levels_list, warning = get_slices_matching_with_vertebral_levels_based_centerline(vert_levels,
+    #                                                                                                        im_vertebral_labeling.data,
+    #                                                                                                        z_centerline_voxel)
+    #
+    #     elif not vert_levels:
+    #         vert_levels_list = []
+    #
+    #     if slices is None:
+    #         mean_CSA = 0.0
+    #         std_CSA = 0.0
+    #         mean_angle = 0.0
+    #         std_angle = 0.0
+    #         slices = '0'
+    #         vert_levels_list = []
+    #
+    #     else:
+    #         # parse the selected slices
+    #         slices_lim = slices.strip().split(':')
+    #         slices_list = range(int(slices_lim[0]), int(slices_lim[-1]) + 1)
+    #         sct.printv('Average CSA across slices ' + str(slices_lim[0]) + ' to ' + str(slices_lim[-1]) + '...',
+    #                    type='info')
+    #
+    #         CSA_for_selected_slices = []
+    #         angles_for_selected_slices = []
+    #         # Read the file csa_per_slice.txt and get the CSA for the selected slices
+    #         with io.open(os.path.join(output_folder, 'csa_per_slice.txt')) as openfile:
+    #             for line in openfile:
+    #                 if line[0] != '#':
+    #                     line_split = line.strip().split(',')
+    #                     if int(line_split[0]) in slices_list:
+    #                         CSA_for_selected_slices.append(float(line_split[1]))
+    #                         angles_for_selected_slices.append(float(line_split[2]))
+    #
+    #         # average the CSA and angle
+    #         mean_CSA = np.mean(np.asarray(CSA_for_selected_slices))
+    #         std_CSA = np.std(np.asarray(CSA_for_selected_slices))
+    #         mean_angle = np.mean(np.asarray(angles_for_selected_slices))
+    #         std_angle = np.std(np.asarray(angles_for_selected_slices))
+    #
+    #     sct.printv('Mean CSA: ' + str(mean_CSA) + ' +/- ' + str(std_CSA) + ' mm^2', type='info')
+    #     sct.printv('Mean angle: ' + str(mean_angle) + ' +/- ' + str(std_angle) + ' degrees', type='info')
+    #
+    #     # write result into output file
+    #     save_results(os.path.join(output_folder, 'csa_mean'), overwrite, fname_segmentation, 'CSA',
+    #                  'nb_voxels x px x py x cos(theta) slice-by-slice (in mm^2)', mean_CSA, std_CSA, slices,
+    #                  actual_vert=vert_levels_list, warning_vert_levels=warning)
+    #     save_results(os.path.join(output_folder, 'angle_mean'), overwrite, fname_segmentation,
+    #                  'Angle with respect to the I-S direction',
+    #                  'Unit z vector compared to the unit tangent vector to the centerline at each slice (in degrees)',
+    #                  mean_angle, std_angle, slices, actual_vert=vert_levels_list, warning_vert_levels=warning)
+    #
+    #     # compute volume between the selected slices
+    #     if slices == '0':
+    #         volume = 0.0
+    #     else:
+    #         sct.printv(
+    #             'Compute the volume in between slices ' + str(slices_lim[0]) + ' to ' + str(slices_lim[-1]) + '...',
+    #             type='info')
+    #         nb_vox = np.sum(data_seg[:, :, slices_list])
+    #         volume = nb_vox * px * py * pz
+    #     sct.printv('Volume in between the selected slices: ' + str(volume) + ' mm^3', type='info')
+    #
+    #     # write result into output file
+    #     save_results(os.path.join(output_folder, 'csa_volume'), overwrite, fname_segmentation, 'volume',
+    #                  'nb_voxels x px x py x pz (in mm^3)', volume, np.nan, slices, actual_vert=vert_levels_list,
+    #                  warning_vert_levels=warning)
+    #
+    # elif (not (slices or vert_levels)) and (overwrite == 1):
+    #     sct.printv(
+    #         'WARNING: Flag \"-overwrite\" is only available if you select (a) slice(s) or (a) vertebral level(s) (flag -z or -vert) ==> CSA estimation per slice will be output in .csv files only.',
+    #         type='warning')
 
     # Remove temporary files
     if remove_temp_files:

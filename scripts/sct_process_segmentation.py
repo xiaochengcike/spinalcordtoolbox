@@ -35,7 +35,6 @@ class Param:
     def __init__(self):
         self.debug = 0
         self.verbose = 1  # verbose
-        self.step = 1  # step of discretized plane in mm default is min(x_scale,py)
         self.remove_temp_files = 1
         self.smoothing_param = 0  # window size (in mm) for smoothing CSA along z. 0 for no smoothing.
         self.slices = ''
@@ -182,7 +181,6 @@ def main(args):
     processes = ['centerline', 'csa', 'length', 'shape']
     start_time = time.time()
     # spline_smoothing = param.spline_smoothing
-    step = param.step
     smoothing_param = param.smoothing_param
     slices = param.slices
     angle_correction = True
@@ -239,7 +237,7 @@ def main(args):
         sct.display_viewer_syntax([fname_segmentation, os.path.join(output_folder, fname_output)], colormaps=['gray', 'red'], opacities=['', '1'])
 
     if name_process == 'csa':
-        compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_temp_files, step, smoothing_param, slices, vert_lev, fname_vertebral_labeling, algo_fitting=param.algo_fitting, type_window=param.type_window, window_length=param.window_length, angle_correction=angle_correction, use_phys_coord=use_phys_coord)
+        compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_temp_files, smoothing_param, slices, vert_lev, fname_vertebral_labeling, algo_fitting=param.algo_fitting, type_window=param.type_window, window_length=param.window_length, angle_correction=angle_correction, use_phys_coord=use_phys_coord)
 
     if name_process == 'label-vert':
         if '-discfile' in arguments:
@@ -605,7 +603,7 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose = 0, algo_
 
 # compute_csa
 # ==========================================================================================
-def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_temp_files, step, smoothing_param, slices, vert_levels, fname_vertebral_labeling='', algo_fitting='hanning', type_window='hanning', window_length=80, angle_correction=True, use_phys_coord=True):
+def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_temp_files, smoothing_param, slices, vert_levels, fname_vertebral_labeling='', algo_fitting='hanning', type_window='hanning', window_length=80, angle_correction=True, use_phys_coord=True):
 
     # Extract path, file and extension
     fname_segmentation = os.path.abspath(fname_segmentation)

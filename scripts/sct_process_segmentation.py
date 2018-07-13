@@ -29,6 +29,7 @@ from msct_parser import Parser
 import msct_shape
 from msct_types import Centerline
 from spinalcordtoolbox.utils import parse_num_list
+from spinalcordtoolbox.template import get_slices_from_vertebral_levels
 from spinalcordtoolbox.centerline import optic
 
 OUTPUT_CSA_VOLUME = 0  # on v3.2.2, this volume was output by default, which was a waste of time (people don't use it)
@@ -399,6 +400,7 @@ def compute_length(fname_segmentation, remove_temp_files, output_folder, overwri
             im_vertebral_labeling.change_orientation(orientation='RPI')
 
             # get the slices corresponding to the vertebral levels
+            # TODO: refactor with the new get_slices_from_vertebral_levels()
             # slices, vert_levels_list, warning = get_slices_matching_with_vertebral_levels(data_seg, vert_levels, im_vertebral_labeling.data, 1)
             slices, vert_levels_list, warning = get_slices_matching_with_vertebral_levels_based_centerline(vert_levels,
                                                                                                            im_vertebral_labeling.data,
@@ -836,8 +838,10 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
 
     # if user specified slices of interest
     slices = '2,3:10,11'
+    vert_levels = '3,4'
     perslice = 0  # TODO: define above
     perlevel = 0  # TODO: define above
+    # TODO: refactor the chunk below and make it a module because it is the same as in sct_extract_metric()
     if slices:
         slices_list = parse_num_list(slices)
     else:
@@ -852,36 +856,46 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
     # if user selected vertebral levels and asked for each separate levels
     # slicegroups = ['1,2', '3,4']
     if vert_levels:
-        list_levels = parse_num_list(vert_levels)
+        # Load vertebral levels
+        im_vertebral_labeling = Image(fname_vertebral_labeling)
+        im_vertebral_labeling.change_orientation(orientation='RPI')
         # Re-define slices_of_interest according to the vertebral levels selected by user
-        slices_of_interest = []
+        list_levels = parse_num_list(vert_levels)
+        slices = []
         for level in list_levels:
-            slices_of_interest.append(get_slices_from_vert_levels(im_vertebral_labeling, level))
+            slices.append(get_slices_from_vertebral_levels(im_vertebral_labeling, level))
+        # initialize slicegroups (will be redefined below)
+        slicegroups = []
         # if users wants to output one metric per level
         if perlevel:
-            # initialize slicegroups (will be redefined below)
-            slicegroups = []
             # for each level, find the matching slices and group them
             for ilevel in list_levels:
                 list_slices = get_slices_from_vert_levels(im_vertebral_labeling, ilevel)
                 slicegroups.append(','.join([str(i) for i in list_slices]))
+        else:
+            # join all slices into a single slicegroups
+            # TODO: the [0] below smells bad-- check that in order to unify the chunk with extract_metric
+            slicegroups.append(','.join([str(i) for i in slices[0]]))
     # Create output csv file
     # sct.printv('Display CSA per slice:', verbose)
     # file_results = open(os.path.join(output_folder, 'csa_per_slice.txt'), 'w')
     fname_out = "csa.csv"  # TODO: define above
     file_results = open(fname_out, 'w')
-    file_results.write('Slice [z],CSA [mm^2],Angle between cord and S-I direction [deg]\n')
+    file_results.write('Slice [z],Vertebral level,CSA [mm^2],Angle between cord and S-I direction [deg]\n')
     # loop across slice group
     for slicegroup in slicegroups:
         try:
             # convert list of strings into list of int to use as index
             ind_slicegroup = [int(i) for i in slicegroup.split(',')]
-            # change "," for ";" in slicegroup otherwise it will be parsed by the CSV format
+            # change "," for ";" otherwise it will be parsed by the CSV format
             slicegroup = slicegroup.replace(",", ";")
+            vert_levels = vert_levels.replace(",", ";")
             # average metrics within slicegroup
             # TODO: ADD STD
-            file_results.write(
-                ','.join([slicegroup, str(np.mean(csa[ind_slicegroup])), str(np.mean(angles[ind_slicegroup]))]) + '\n')
+            file_results.write(','.join([slicegroup,
+                                         vert_levels,
+                                         str(np.mean(csa[ind_slicegroup])),
+                                         str(np.mean(angles[ind_slicegroup]))]) + '\n')
         except ValueError:
             # the slice request is out of the range of the image
             sct.printv('The slice(s) requested is out of the range of the image', type='warning')

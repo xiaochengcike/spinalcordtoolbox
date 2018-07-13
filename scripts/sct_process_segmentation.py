@@ -36,7 +36,7 @@ class Param:
         self.debug = 0
         self.verbose = 1  # verbose
         self.remove_temp_files = 1
-        self.smoothing_param = 0  # window size (in mm) for smoothing CSA along z. 0 for no smoothing.
+        # self.smoothing_param = 0  # window size (in mm) for smoothing CSA along z. 0 for no smoothing.
         self.slices = ''
         self.type_window = 'hanning'  # for smooth_centerline @sct_straighten_spinalcord
         self.window_length = 50  # for smooth_centerline @sct_straighten_spinalcord
@@ -181,7 +181,7 @@ def main(args):
     processes = ['centerline', 'csa', 'length', 'shape']
     start_time = time.time()
     # spline_smoothing = param.spline_smoothing
-    smoothing_param = param.smoothing_param
+    # smoothing_param = param.smoothing_param
     slices = param.slices
     angle_correction = True
     use_phys_coord = True
@@ -203,8 +203,8 @@ def main(args):
         vert_lev = ''
     if '-r' in arguments:
         remove_temp_files = arguments['-r']
-    if '-size' in arguments:
-        smoothing_param = arguments['-size']
+    # if '-size' in arguments:
+    #     smoothing_param = arguments['-size']
     if '-vertfile' in arguments:
         fname_vertebral_labeling = arguments['-vertfile']
     if '-v' in arguments:
@@ -237,7 +237,7 @@ def main(args):
         sct.display_viewer_syntax([fname_segmentation, os.path.join(output_folder, fname_output)], colormaps=['gray', 'red'], opacities=['', '1'])
 
     if name_process == 'csa':
-        compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_temp_files, smoothing_param, slices, vert_lev, fname_vertebral_labeling, algo_fitting=param.algo_fitting, type_window=param.type_window, window_length=param.window_length, angle_correction=angle_correction, use_phys_coord=use_phys_coord)
+        compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_temp_files, slices, vert_lev, fname_vertebral_labeling, algo_fitting=param.algo_fitting, type_window=param.type_window, window_length=param.window_length, angle_correction=angle_correction, use_phys_coord=use_phys_coord)
 
     if name_process == 'label-vert':
         if '-discfile' in arguments:
@@ -603,7 +603,7 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose = 0, algo_
 
 # compute_csa
 # ==========================================================================================
-def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_temp_files, smoothing_param, slices, vert_levels, fname_vertebral_labeling='', algo_fitting='hanning', type_window='hanning', window_length=80, angle_correction=True, use_phys_coord=True):
+def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_temp_files, slices, vert_levels, fname_vertebral_labeling='', algo_fitting='hanning', type_window='hanning', window_length=80, angle_correction=True, use_phys_coord=True):
 
     # Extract path, file and extension
     fname_segmentation = os.path.abspath(fname_segmentation)
@@ -695,27 +695,27 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
         csa[iz - min_z_index] = number_voxels * px * py * np.cos(angle)
         angles[iz - min_z_index] = math.degrees(angle)
 
-    sct.printv('\nSmooth CSA across slices...', verbose)
-    if smoothing_param:
-        from msct_smooth import smoothing_window
-        sct.printv('.. Hanning window: ' + str(smoothing_param) + ' mm', verbose)
-        csa_smooth = smoothing_window(csa, window_len=smoothing_param / pz, window='hanning', verbose=0)
-        # display figure
-        if verbose == 2:
-            import matplotlib.pyplot as plt
-            plt.figure()
-            z_centerline_scaled = [x * pz for x in z_centerline]
-            pltx, = plt.plot(z_centerline_scaled, csa, 'bo')
-            pltx_fit, = plt.plot(z_centerline_scaled, csa_smooth, 'r', linewidth=2)
-            plt.title("Cross-sectional area (CSA)")
-            plt.xlabel('z (mm)')
-            plt.ylabel('CSA (mm^2)')
-            plt.legend([pltx, pltx_fit], ['Raw', 'Smoothed'])
-            plt.show()
-        # update variable
-        csa = csa_smooth
-    else:
-        sct.printv('.. No smoothing!', verbose)
+    # sct.printv('\nSmooth CSA across slices...', verbose)
+    # if smoothing_param:
+    #     from msct_smooth import smoothing_window
+    #     sct.printv('.. Hanning window: ' + str(smoothing_param) + ' mm', verbose)
+    #     csa_smooth = smoothing_window(csa, window_len=smoothing_param / pz, window='hanning', verbose=0)
+    #     # display figure
+    #     if verbose == 2:
+    #         import matplotlib.pyplot as plt
+    #         plt.figure()
+    #         z_centerline_scaled = [x * pz for x in z_centerline]
+    #         pltx, = plt.plot(z_centerline_scaled, csa, 'bo')
+    #         pltx_fit, = plt.plot(z_centerline_scaled, csa_smooth, 'r', linewidth=2)
+    #         plt.title("Cross-sectional area (CSA)")
+    #         plt.xlabel('z (mm)')
+    #         plt.ylabel('CSA (mm^2)')
+    #         plt.legend([pltx, pltx_fit], ['Raw', 'Smoothed'])
+    #         plt.show()
+    #     # update variable
+    #     csa = csa_smooth
+    # else:
+    #     sct.printv('.. No smoothing!', verbose)
 
     # output volume of csa values
     sct.printv('\nCreate volume of CSA values...', verbose)

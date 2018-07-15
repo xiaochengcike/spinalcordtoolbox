@@ -32,8 +32,9 @@ from spinalcordtoolbox.utils import parse_num_list
 from spinalcordtoolbox.template import get_slices_from_vertebral_levels
 from spinalcordtoolbox.centerline import optic
 
-OUTPUT_CSA_VOLUME = 0  # on v3.2.2, this volume was output by default, which was a waste of time (people don't use it)
-OUTPUT_ANGLE_VOLUME = 0  # same as above
+# on v3.2.2 and earlier, the following volumes were output by default, which was a waste of time (people don't use it)
+OUTPUT_CSA_VOLUME = 0
+OUTPUT_ANGLE_VOLUME = 0
 
 
 class Param:
@@ -425,8 +426,8 @@ def compute_length(fname_segmentation, remove_temp_files, output_folder, overwri
             for i in range(len(x_centerline_fit) - 1):
                 if z_centerline[i] in slices_list:
                     length += sqrt(((x_centerline_fit[i + 1] - x_centerline_fit[i]) * px) ** 2 + (
-                                (y_centerline_fit[i + 1] - y_centerline_fit[i]) * py) ** 2 + (
-                                               (z_centerline[i + 1] - z_centerline[i]) * pz) ** 2)
+                            (y_centerline_fit[i + 1] - y_centerline_fit[i]) * py) ** 2 + (
+                                           (z_centerline[i + 1] - z_centerline[i]) * pz) ** 2)
 
         sct.printv('\nLength of the segmentation = ' + str(round(length, 2)) + ' mm\n', verbose, 'info')
 
@@ -446,8 +447,8 @@ def compute_length(fname_segmentation, remove_temp_files, output_folder, overwri
         length = 0.0
         for i in range(len(x_centerline_fit) - 1):
             length += sqrt(((x_centerline_fit[i + 1] - x_centerline_fit[i]) * px) ** 2 + (
-                        (y_centerline_fit[i + 1] - y_centerline_fit[i]) * py) ** 2 + (
-                                       (z_centerline[i + 1] - z_centerline[i]) * pz) ** 2)
+                    (y_centerline_fit[i + 1] - y_centerline_fit[i]) * py) ** 2 + (
+                                   (z_centerline[i + 1] - z_centerline[i]) * pz) ** 2)
 
         sct.printv('\nLength of the segmentation = ' + str(round(length, 2)) + ' mm\n', verbose, 'info')
         # write result into output file

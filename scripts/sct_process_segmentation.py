@@ -839,10 +839,10 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
 
     # if user specified slices of interest
     slices = '2,3:10,11'
-    vert_levels = '3,4'
+    vert_levels = '3:5'
     perslice = 0  # TODO: define above
     perlevel = 0  # TODO: define above
-    # TODO: refactor the chunk below and make it a module because it is the same as in sct_extract_metric()
+    # TODO: refactor the chunk below and make it a module because it is the same as in sct_extract_metric() and shape
     if slices:
         slices_list = parse_num_list(slices)
     else:
@@ -850,33 +850,38 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
     # if perslice with slices: ['1', '2', '3', '4']
     # important: each slice number should be separated by "," not ":"
     slicegroups = [str(i) for i in slices_list]
-    # if users does not want to output metric per slice, then create a single element in slicegroups
-    if not perslice and not perlevel:
-        # ['1,2,3,4,5,6']
+    # if user does not want to output metric per slice, then create a single element in slicegroups
+    if not perslice:
+        # ['1', '2', '3', '4'] -> ['1,2,3,4']
         slicegroups = [','.join(slicegroups)]
-    # if user selected vertebral levels and asked for each separate levels
-    # slicegroups = ['1,2', '3,4']
+    # if user selected vertebral levels
     if vert_levels:
         # Load vertebral levels
         im_vertebral_labeling = Image(fname_vertebral_labeling)
         im_vertebral_labeling.change_orientation(orientation='RPI')
         # Re-define slices_of_interest according to the vertebral levels selected by user
         list_levels = parse_num_list(vert_levels)
-        slices = []
-        for level in list_levels:
-            slices.append(get_slices_from_vertebral_levels(im_vertebral_labeling, level))
+        # slices = []
+        # for level in list_levels:
+        #     slices.append(get_slices_from_vertebral_levels(im_vertebral_labeling, level))
         # initialize slicegroups (will be redefined below)
         slicegroups = []
+        vertgroups = [str(i) for i in list_levels]
         # if users wants to output one metric per level
-        if perlevel:
-            # for each level, find the matching slices and group them
-            for ilevel in list_levels:
-                list_slices = get_slices_from_vert_levels(im_vertebral_labeling, ilevel)
-                slicegroups.append(','.join([str(i) for i in list_slices]))
-        else:
-            # join all slices into a single slicegroups
-            # TODO: the [0] below smells bad-- check that in order to unify the chunk with extract_metric
-            slicegroups.append(','.join([str(i) for i in slices[0]]))
+        # if perlevel:
+        # for each level, find the matching slices and group them
+        for level in list_levels:
+            list_slices = get_slices_from_vertebral_levels(im_vertebral_labeling, level)
+            slicegroups.append(','.join([str(i) for i in list_slices]))
+        # if user does not want to output metric per vert level, create a single element in vertgroups
+        if not perlevel:
+            # ['2', '3', '4'] -> ['2,3,4']
+            vertgroups = [','.join(vertgroups)]
+            slicegroups = [','.join(slicegroups)]
+        # else:
+        # join all slices into a single slicegroups
+        # TODO: the [0] below smells bad-- check that in order to unify the chunk with extract_metric
+        # slicegroups.append(','.join([str(i) for i in slices[0]]))
     # Create output csv file
     # sct.printv('Display CSA per slice:', verbose)
     # file_results = open(os.path.join(output_folder, 'csa_per_slice.txt'), 'w')
@@ -888,13 +893,14 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
         try:
             # convert list of strings into list of int to use as index
             ind_slicegroup = [int(i) for i in slicegroup.split(',')]
-            # change "," for ";" otherwise it will be parsed by the CSV format
-            slicegroup = slicegroup.replace(",", ";")
-            vert_levels = vert_levels.replace(",", ";")
+            vertgroup = vertgroups[slicegroups.index(slicegroup)]
+            # vert_levels = vert_levels.replace(",", ";")
             # average metrics within slicegroup
             # TODO: ADD STD
+            # change "," for ";" otherwise it will be parsed by the CSV format
+            slicegroup = slicegroup.replace(",", ";")
             file_results.write(','.join([slicegroup,
-                                         vert_levels,
+                                         vertgroup,
                                          str(np.mean(csa[ind_slicegroup])),
                                          str(np.mean(angles[ind_slicegroup]))]) + '\n')
         except ValueError:

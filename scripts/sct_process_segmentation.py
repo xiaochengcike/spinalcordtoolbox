@@ -71,7 +71,7 @@ def get_parser():
                                   '- csa: computes cross-sectional area by counting pixels in each'
                                   '  slice and then geometrically adjusting using centerline orientation. Note that it '
                                   '  is possible to input a binary mask or a mask comprising values within the range '
-                                  '  [0,1] to account for partial volume effect. Default output file name is: csa.csv'
+                                  '  [0,1] to account for partial volume effect. Default output file is: ./csa.csv'
                                   '- shape: compute spinal shape properties, using scikit-image region measures, including:\n'
                                   '  - AP and RL diameters\n'
                                   '  - ratio between AP and RL diameters\n'
@@ -83,12 +83,14 @@ def get_parser():
                       mandatory=True,
                       example=['centerline', 'label-vert', 'length', 'csa', 'shape'])
     parser.usage.addSection('Optional Arguments')
+    parser.add_option(name='-o',
+                      type_value='file_output',
+                      description="Output file name (add extension). Ex: my_csa.csv (with -p csa).",
+                      mandatory=False)
     parser.add_option(name="-ofolder",
-                      type_value="folder_creation",
-                      description="In case you choose the option \"-p csa\", this option allows you to specify the output folder for the result files. If this folder does not exist, it will be created, otherwise the result files will be output in the pre-existing folder.",
-                      mandatory=False,
-                      example="My_Output_Folder/",
-                      default_value="")
+                      type_value="str",
+                      description="Deprecated. Please use -o.",
+                      mandatory=False)
     parser.add_option(name='-overwrite',
                       type_value='int',
                       description="""In the case you specified, in flag \"-ofolder\", a pre-existing folder that already includes a .xls result file (see flags \"-p csa\" and \"-z\" or \"-vert\"), this option will allow you to overwrite the .xls file (\"-overwrite 1\") or to add the results to it (\"-overwrite 0\").""",
@@ -196,11 +198,10 @@ def main(args):
     name_process = arguments['-p']
     overwrite = 0
     fname_vertebral_labeling = ''
+    if '-o' in arguments:
+        fname_output = os.path.abspath(arguments['-o'])
     if "-ofolder" in arguments:
-        output_folder = arguments["-ofolder"]
-    else:
-        output_folder = os.getcwd()
-
+        sct.printv('The flag "-ofolder" is deprecated. Please use -o. Exiting.', 1, 'error')
     if '-overwrite' in arguments:
         overwrite = arguments['-overwrite']
     if '-vert' in arguments:
@@ -253,10 +254,10 @@ def main(args):
                                   colormaps=['gray', 'red'], opacities=['', '1'])
 
     if name_process == 'csa':
-        compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_temp_files, slices, vert_lev,
+        compute_csa(fname_segmentation, overwrite, verbose, remove_temp_files, slices, vert_lev,
                     fname_vertebral_labeling, perslice=perslice, perlevel=perlevel, algo_fitting=param.algo_fitting,
                     type_window=param.type_window, window_length=param.window_length,
-                    angle_correction=angle_correction, use_phys_coord=use_phys_coord)
+                    angle_correction=angle_correction, use_phys_coord=use_phys_coord, fname_output=fname_output)
 
     if name_process == 'label-vert':
         if '-discfile' in arguments:
@@ -637,9 +638,10 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fi
 
 # compute_csa
 # ==========================================================================================
-def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_temp_files, slices, vert_levels,
+def compute_csa(fname_segmentation, overwrite, verbose, remove_temp_files, slices, vert_levels,
                 fname_vertebral_labeling='', perslice=0, perlevel=0, algo_fitting='hanning',
-                type_window='hanning', window_length=80, angle_correction=True, use_phys_coord=True):
+                type_window='hanning', window_length=80, angle_correction=True, use_phys_coord=True,
+                fname_output='csa.csv'):
     # TODO: do everything in RAM instead of adding unecessary i/o
 
     # Extract path, file and extension
@@ -836,14 +838,8 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
         im_vertebral_labeling.change_orientation(orientation='RPI')
         # Re-define slices_of_interest according to the vertebral levels selected by user
         list_levels = parse_num_list(vert_levels)
-        # slices = []
-        # for level in list_levels:
-        #     slices.append(get_slices_from_vertebral_levels(im_vertebral_labeling, level))
-        # initialize slicegroups (will be redefined below)
         slicegroups = []
         vertgroups = [str(i) for i in list_levels]
-        # if users wants to output one metric per level
-        # if perlevel:
         # for each level, find the matching slices and group them
         for level in list_levels:
             list_slices = get_slices_from_vertebral_levels(im_vertebral_labeling, level)
@@ -855,8 +851,7 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
             vertgroups = [','.join(vertgroups)]
             slicegroups = [','.join(slicegroups)]
     # Create output csv file
-    fname_out = "csa.csv"  # TODO: define above
-    file_results = open(fname_out, 'w')
+    file_results = open(fname_output, 'w')
     file_results.write('Slice [z],Vertebral level,CSA [mm^2],Angle between cord and S-I direction [deg]\n')
     # loop across slice group
     for slicegroup in slicegroups:
@@ -870,6 +865,8 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
             # average metrics within slicegroup
             # TODO: ADD STD
             # change "," for ";" otherwise it will be parsed by the CSV format
+            # TODO: instead of having a long list of ;-separated numbers, it would be nicer to separate long number
+            # TODO (cont.) suites with ":". E.g.: '1,2,3,4,5' -> '1:5'. See #1932
             slicegroup = slicegroup.replace(",", ";")
             vertgroup = vertgroup.replace(",", ";")
             file_results.write(','.join([slicegroup,

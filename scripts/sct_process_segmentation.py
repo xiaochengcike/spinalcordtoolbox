@@ -69,11 +69,9 @@ def get_parser():
                                   '- label-vert: Transform segmentation into vertebral level using a file that contains labels with disc value (flag: -discfile)\n'
                                   '- length: compute length of the segmentation.\n'
                                   '- csa: computes cross-sectional area by counting pixels in each'
-                                  '  slice and then geometrically adjusting using centerline orientation. Outputs:\n'
-                                  '  - angle_image.nii.gz: the cord segmentation (nifti file) where each slice\'s value is equal to the CSA (mm^2),\n'
-                                  '  - csa_image.nii.gz: the cord segmentation (nifti file) where each slice\'s value is equal to the angle (in degrees) between the spinal cord centerline and the inferior-superior direction,\n'
-                                  '  - csa_per_slice.txt: a CSV text file with z (1st column), CSA in mm^2 (2nd column) and angle with respect to the I-S direction in degrees (3rd column),\n'
-                                  '  - and if you select the options -z or -vert, csa_mean and csa_volume: mean CSA and volume across the selected slices or vertebral levels is ouptut in CSV text files.\n'
+                                  '  slice and then geometrically adjusting using centerline orientation. Note that it '
+                                  '  is possible to input a binary mask or a mask comprising values within the range '
+                                  '  [0,1] to account for partial volume effect. Default output file name is: csa.csv'
                                   '- shape: compute spinal shape properties, using scikit-image region measures, including:\n'
                                   '  - AP and RL diameters\n'
                                   '  - ratio between AP and RL diameters\n'
@@ -148,7 +146,12 @@ def get_parser():
                       example=['hanning', 'nurbs'])
     parser.add_option(name='-no-angle',
                       type_value='multiple_choice',
-                      description='0: angle correction for csa computation. 1: no angle correction.',
+                      description='0: angle correction for csa computation. 1: no angle correction. When angle '
+                                  'correction is used, the CSA is calculated within the slice by computing the surface '
+                                  'of the segmentation, and then correcting the CSA by the cosine of the angle between '
+                                  'the slice plane and the cord centerline (previously estimated using a regularized '
+                                  'NURBS function). With the flag -no-angle 1, no correction is applied, which is '
+                                  'usually correct for data acquired orthogonally to the cord.',
                       mandatory=False,
                       example=['0', '1'],
                       default_value='0')

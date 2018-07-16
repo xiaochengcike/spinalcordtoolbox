@@ -858,12 +858,13 @@ def compute_corr_3d(src, target, x, xshift, xsize, y, yshift, ysize, z, zshift, 
     return z + zrange[ind_peak] - zshift
 
 
-def label_segmentation(fname_seg, list_disc_z, list_disc_value, verbose=1):
+def label_segmentation(fname_seg, list_disc_z, list_disc_value, fname_out='', verbose=1):
     """
     Label segmentation image
     :param fname_seg: fname of the segmentation, no orientation expected
     :param list_disc_z: list of z that correspond to a disc
     :param list_disc_value: list of associated disc values
+    :param fname_out: output labeled segmentation. If empty, will add suffix "_labeled" to fname_seg
     :param verbose:
     :return:
     """
@@ -900,9 +901,13 @@ def label_segmentation(fname_seg, list_disc_z, list_disc_value, verbose=1):
             plt.figure(50)
             plt.scatter(int(round(ny / 2)), iz, c=vertebral_level, vmin=min(list_disc_value), vmax=max(list_disc_value), cmap='prism', marker='_', s=200)
     # write file
-    seg.file_name += '_labeled'
+    if not fname_out:
+        fname_out = sct.add_suffix(seg.absolutepath, '_labeled')
+    seg.setFileName(fname_out)
     seg.change_orientation(init_orientation)
     seg.save()
+    # Generate output files
+    sct.printv('--> File created: ' + fname_out, verbose)
 
 
 def label_discs(fname_seg_labeled, verbose=1):

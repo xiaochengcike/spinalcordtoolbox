@@ -13,6 +13,15 @@
 #
 # About the license: see the file LICENSE.TXT
 #########################################################################################
+
+# TODO: label-vert not there???
+# TODO: generalize "-o xxx" flag when used as a prefix file name (without extension):
+# - centerline: xxx.csv (centerline coordinates as csv), xxx.nii.gz (centerline as binary nifti volume)
+# - label-vert: xxx.nii.gz (labeled segmentation)
+# - csa: xxx.csv (output csa values)
+#   - other flags: -csa_volume xxx.nii.gz and -angle_volume xxx.nii.gz
+# - shape: xxx.csv (output shape)
+# - length: xxx.csv (spinal cord length)
 # TODO: the import of scipy.misc imsave was moved to the specific cases (orth and ellipse) in order to avoid issue #62. This has to be cleaned in the future.
 
 import sys, io, os, shutil, time, math
@@ -199,7 +208,9 @@ def main(args):
     overwrite = 0
     fname_vertebral_labeling = ''
     if '-o' in arguments:
-        fname_output = os.path.abspath(arguments['-o'])
+        fname_out = os.path.abspath(arguments['-o'])
+    else:
+        fname_out = ''
     if "-ofolder" in arguments:
         sct.printv('The flag "-ofolder" is deprecated. Please use -o. Exiting.', 1, 'error')
     if '-overwrite' in arguments:
@@ -247,24 +258,24 @@ def main(args):
     sct.printv('.. segmentation file:             ' + fname_segmentation)
 
     if name_process == 'centerline':
-        fname_output = extract_centerline(fname_segmentation, remove_temp_files, verbose=param.verbose,
+        fname_out = extract_centerline(fname_segmentation, remove_temp_files, verbose=param.verbose,
                                           algo_fitting=param.algo_fitting, use_phys_coord=use_phys_coord)
-        sct.copy(fname_output, output_folder)
-        sct.display_viewer_syntax([fname_segmentation, os.path.join(output_folder, fname_output)],
+        sct.copy(fname_out, output_folder)
+        sct.display_viewer_syntax([fname_segmentation, os.path.join(output_folder, fname_out)],
                                   colormaps=['gray', 'red'], opacities=['', '1'])
 
     if name_process == 'csa':
         compute_csa(fname_segmentation, overwrite, verbose, remove_temp_files, slices, vert_lev,
                     fname_vertebral_labeling, perslice=perslice, perlevel=perlevel, algo_fitting=param.algo_fitting,
                     type_window=param.type_window, window_length=param.window_length,
-                    angle_correction=angle_correction, use_phys_coord=use_phys_coord, fname_output=fname_output)
+                    angle_correction=angle_correction, use_phys_coord=use_phys_coord, fname_out=fname_out)
 
     if name_process == 'label-vert':
         if '-discfile' in arguments:
             fname_disc_label = arguments['-discfile']
         else:
             sct.printv('\nERROR: Disc label file is mandatory (flag: -discfile).\n', 1, 'error')
-        label_vert(fname_segmentation, fname_disc_label)
+        label_vert(fname_segmentation, fname_disc_label, fname_out=fname_out, verbose=verbose)
 
     if name_process == 'length':
         result_length = compute_length(fname_segmentation, remove_temp_files, output_folder, overwrite, slices,
@@ -482,6 +493,7 @@ def compute_length(fname_segmentation, remove_temp_files, output_folder, overwri
 # ==========================================================================================
 def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fitting='hanning', type_window='hanning',
                        window_length=80, use_phys_coord=True):
+    # TODO: no need for unecessary i/o. Everything could be done in RAM
     # Extract path, file and extension
     fname_segmentation = os.path.abspath(fname_segmentation)
     path_data, file_data, ext_data = sct.extract_fname(fname_segmentation)
@@ -560,6 +572,7 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fi
             nurbs_pts_number=3000, phys_coordinates=False, verbose=verbose, all_slices=True)
 
     if verbose == 2:
+        # TODO: code below does not work
         import matplotlib.pyplot as plt
 
         # Creation of a vector x that takes into account the distance between the labels
@@ -615,6 +628,7 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fi
     file_results.close()
 
     # create a .roi file
+    # TODO: create a flag for it
     fname_roi_centerline = optic.centerline2roi(fname_image='centerline_RPI.nii.gz',
                                                 folder_output='./',
                                                 verbose=verbose)
@@ -641,7 +655,7 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fi
 def compute_csa(fname_segmentation, overwrite, verbose, remove_temp_files, slices, vert_levels,
                 fname_vertebral_labeling='', perslice=0, perlevel=0, algo_fitting='hanning',
                 type_window='hanning', window_length=80, angle_correction=True, use_phys_coord=True,
-                fname_output='csa.csv'):
+                fname_out='csa.csv'):
     # TODO: do everything in RAM instead of adding unecessary i/o
 
     # Extract path, file and extension
@@ -851,7 +865,7 @@ def compute_csa(fname_segmentation, overwrite, verbose, remove_temp_files, slice
             vertgroups = [','.join(vertgroups)]
             slicegroups = [','.join(slicegroups)]
     # Create output csv file
-    file_results = open(fname_output, 'w')
+    file_results = open(fname_out, 'w')
     file_results.write('Slice [z],Vertebral level,CSA [mm^2],Angle between cord and S-I direction [deg]\n')
     # loop across slice group
     for slicegroup in slicegroups:
@@ -885,11 +899,12 @@ def compute_csa(fname_segmentation, overwrite, verbose, remove_temp_files, slice
         sct.rmtree(path_tmp)
 
 
-def label_vert(fname_seg, fname_label, verbose=1):
+def label_vert(fname_seg, fname_label, fname_out='', verbose=1):
     """
-    Label segmentation using vertebral labeling information
-    :param fname_segmentation, no orientation expected
-    :param fname_label:
+    Label segmentation using vertebral labeling information. No orientation expected.
+    :param fname_seg: file name of segmentation.
+    :param fname_label: file name for a labelled segmentation that will be used to label the input segmentation
+    :param fname_out: file name of the output labeled segmentation. If empty, will add suffix "_labeled" to fname_seg
     :param verbose:
     :return:
     """
@@ -911,15 +926,13 @@ def label_vert(fname_seg, fname_label, verbose=1):
     list_disc_z = [y for (y, x) in sorted(zip(list_disc_z, list_disc_value), reverse=True)]
     # label segmentation
     from sct_label_vertebrae import label_segmentation
-    label_segmentation(fname_seg, list_disc_z, list_disc_value, verbose=verbose)
-    # Generate output files
-    sct.printv('--> File created: ' + sct.add_suffix(fname_seg, '_labeled.nii.gz'), verbose)
+    label_segmentation(fname_seg, list_disc_z, list_disc_value, fname_out=fname_out, verbose=verbose)
 
 
 # ======================================================================================================================
 # Save CSA or volume estimation in a .txt file
 # ======================================================================================================================
-def save_results(fname_output, overwrite, fname_data, metric_name, method, mean, std, slices_of_interest, actual_vert,
+def save_results(fname_out, overwrite, fname_data, metric_name, method, mean, std, slices_of_interest, actual_vert,
                  warning_vert_levels):
     # define vertebral levels and slices fields
     if actual_vert:
@@ -938,11 +951,11 @@ def save_results(fname_output, overwrite, fname_data, metric_name, method, mean,
     else:
         slices_of_interest_field = 'ALL'
 
-    sct.printv('Save results in: ' + fname_output + '.txt\n')
+    sct.printv('Save results in: ' + fname_out + '.txt\n')
 
     # Save results in a CSV text file
     # CSV format, header lines start with "#"
-    fid_metric = open(fname_output + '.txt', 'w')
+    fid_metric = open(fname_out + '.txt', 'w')
 
     # WRITE HEADER:
     # Write date and time
@@ -968,9 +981,9 @@ def save_results(fname_output, overwrite, fname_data, metric_name, method, mean,
 
     # Save results in a MS Excel file
     # if the user asked for no overwriting but the specified output file does not exist yet
-    if (not overwrite) and (not os.path.isfile(fname_output + '.xls')):
+    if (not overwrite) and (not os.path.isfile(fname_out + '.xls')):
         sct.printv(
-            'WARNING: You asked to edit the pre-existing file \"' + fname_output + '.xls\" but this file does not exist. It will be created.',
+            'WARNING: You asked to edit the pre-existing file \"' + fname_out + '.xls\" but this file does not exist. It will be created.',
             type='warning')
         overwrite = 1
 
@@ -978,7 +991,7 @@ def save_results(fname_output, overwrite, fname_data, metric_name, method, mean,
         from xlrd import open_workbook
         from xlutils.copy import copy
 
-        existing_book = open_workbook(fname_output + '.xls')
+        existing_book = open_workbook(fname_out + '.xls')
 
         # get index of the first empty row and leave one empty row between the two subjects
         row_index = existing_book.sheet_by_index(0).nrows
@@ -1014,7 +1027,7 @@ def save_results(fname_output, overwrite, fname_data, metric_name, method, mean,
     sh.write(row_index, 6, float(mean))
     sh.write(row_index, 7, str(std))
 
-    book.save(fname_output + '.xls')
+    book.save(fname_out + '.xls')
 
     # Save results in a pickle file
     # write results in a dictionary
@@ -1030,7 +1043,7 @@ def save_results(fname_output, overwrite, fname_data, metric_name, method, mean,
 
     # save "output_results"
     # import pickle
-    # output_file = open(fname_output + '.pickle', 'wb')
+    # output_file = open(fname_out + '.pickle', 'wb')
     # pickle.dump(output_results, output_file)
     # output_file.close()
 

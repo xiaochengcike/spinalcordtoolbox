@@ -841,12 +841,13 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
     slices = '2,3:10,11'
     vert_levels = '3:5'
     perslice = 1  # TODO: define above
-    perlevel = 1  # TODO: define above
+    perlevel = 0  # TODO: define above
     # TODO: refactor the chunk below and make it a module because it is the same as in sct_extract_metric() and shape
     if slices:
-        slices_list = parse_num_list(slices)
+        list_slices = parse_num_list(slices)
     else:
-        slices_list = np.arange(nz).tolist()
+        list_slices = np.arange(nz).tolist()
+    list_slices.reverse()  # more intuitive to list slices in descending mode (i.e. from head to toes)
     # if perslice with slices: ['1', '2', '3', '4']
     # important: each slice number should be separated by "," not ":"
     slicegroups = [str(i) for i in slices_list]
@@ -872,6 +873,7 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
         # for each level, find the matching slices and group them
         for level in list_levels:
             list_slices = get_slices_from_vertebral_levels(im_vertebral_labeling, level)
+            list_slices.reverse()
             slicegroups.append(','.join([str(i) for i in list_slices]))
         # if user does not want to output metric per vert level, create a single element in vertgroups
         if not perlevel:

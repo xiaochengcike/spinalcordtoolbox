@@ -14,7 +14,7 @@
 # About the license: see the file LICENSE.TXT
 #########################################################################################
 
-# TODO: label-vert not there???
+# TODO: have file_out being by default the process name
 # TODO: generalize "-o xxx" flag when used as a prefix file name (without extension):
 # - centerline: xxx.csv (centerline coordinates as csv), xxx.nii.gz (centerline as binary nifti volume)
 # - label-vert: xxx.nii.gz (labeled segmentation)
@@ -185,9 +185,9 @@ def main(args):
     overwrite = 0
     fname_vertebral_labeling = ''
     if '-o' in arguments:
-        fname_out = os.path.abspath(arguments['-o'])
+        file_out = os.path.abspath(arguments['-o'])
     else:
-        fname_out = ''
+        file_out = ''
     if "-ofolder" in arguments:
         sct.printv('The flag "-ofolder" is deprecated. Please use -o. Exiting.', 1, 'error')
     if '-overwrite' in arguments:
@@ -239,20 +239,20 @@ def main(args):
         #                           colormaps=['gray', 'red'], opacities=['', '1'])
 
     if name_process == 'csa':
-        if not fname_out:
-            fname_out = 'csa.csv'
+        if not file_out:
+            file_out = 'csa'
         process_seg.compute_csa(fname_segmentation, overwrite, verbose, remove_temp_files, slices, vert_lev,
                                 fname_vertebral_labeling, perslice=perslice, perlevel=perlevel,
                                 algo_fitting=param.algo_fitting, type_window=param.type_window,
                                 window_length=param.window_length, angle_correction=angle_correction,
-                                use_phys_coord=use_phys_coord, fname_out=fname_out)
+                                use_phys_coord=use_phys_coord, file_out=file_out)
 
     if name_process == 'label-vert':
         if '-discfile' in arguments:
             fname_disc_label = arguments['-discfile']
         else:
             sct.printv('\nERROR: Disc label file is mandatory (flag: -discfile).\n', 1, 'error')
-        process_seg.label_vert(fname_segmentation, fname_disc_label, fname_out=fname_out, verbose=verbose)
+        process_seg.label_vert(fname_segmentation, fname_disc_label, file_out=file_out, verbose=verbose)
 
     if name_process == 'length':
         process_seg.compute_length(fname_segmentation, remove_temp_files, output_folder, overwrite, slices,

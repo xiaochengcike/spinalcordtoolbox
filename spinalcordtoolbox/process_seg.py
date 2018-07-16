@@ -220,72 +220,91 @@ def compute_length(fname_segmentation, remove_temp_files, output_folder, overwri
 # extract_centerline
 # ==========================================================================================
 def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fitting='hanning', type_window='hanning',
-                       window_length=80, use_phys_coord=True):
+                       window_length=80, use_phys_coord=True, file_out='centerline'):
+    """
+    Extract centerline from a binary or weighted segmentation by computing the center of mass. Outputs centerline
+    coordinates (as csv) and binary mask with one pixel per slice (nifti file).
+    :param fname_segmentation:
+    :param remove_temp_files:
+    :param verbose:
+    :param algo_fitting:
+    :param type_window:
+    :param window_length:
+    :param use_phys_coord: TODO: Explain the pros/cons of use_phys_coord.
+    :param file_out:
+    :return:
+    """
     # TODO: no need for unecessary i/o. Everything could be done in RAM
     # Extract path, file and extension
-    fname_segmentation = os.path.abspath(fname_segmentation)
-    path_data, file_data, ext_data = sct.extract_fname(fname_segmentation)
+    # fname_segmentation = os.path.abspath(fname_segmentation)
+    # path_data, file_data, ext_data = sct.extract_fname(fname_segmentation)
 
     # create temporary folder
-    path_tmp = sct.tmp_create(verbose=verbose)
+    # path_tmp = sct.tmp_create(verbose=verbose)
 
     # Copying input data to tmp folder
-    sct.printv('\nCopying data to tmp folder...', verbose)
-    sct.run(['sct_convert', '-i', fname_segmentation, '-o', os.path.join(path_tmp, "segmentation.nii.gz")], verbose)
+    # sct.printv('\nCopying data to tmp folder...', verbose)
+    # sct.run(['sct_convert', '-i', fname_segmentation, '-o', os.path.join(path_tmp, "segmentation.nii.gz")], verbose)
 
     # go to tmp folder
-    curdir = os.getcwd()
-    os.chdir(path_tmp)
+    # curdir = os.getcwd()
+    # os.chdir(path_tmp)
 
     # Change orientation of the input centerline into RPI
-    sct.printv('\nOrient centerline to RPI orientation...', verbose)
+    # sct.printv('\nOrient centerline to RPI orientation...', verbose)
     # fname_segmentation_orient = 'segmentation_RPI.nii.gz'
     # BELOW DOES NOT WORK (JULIEN, 2015-10-17)
     # im_seg = Image(file_data+ext_data)
     # set_orientation(im_seg, 'RPI')
     # im_seg.setFileName(fname_segmentation_orient)
     # im_seg.save()
-    sct.run(['sct_image', '-i', 'segmentation.nii.gz', '-setorient', 'RPI', '-o', 'segmentation_RPI.nii.gz'], verbose)
+    # sct.run(['sct_image', '-i', 'segmentation.nii.gz', '-setorient', 'RPI', '-o', 'segmentation_RPI.nii.gz'], verbose)
 
     # Open segmentation volume
-    sct.printv('\nOpen segmentation volume...', verbose)
-    im_seg = Image('segmentation_RPI.nii.gz')
-    data = im_seg.data
+    im_seg = Image(fname_segmentation)
+    # Change orientation
+    native_orientation = im_seg.change_orientation('RPI')
+    # Save as temp file
+    path_tmp = sct.tmp_create()
+    fname_tmp_seg = os.path.join(path_tmp, 'fname_tmp_seg.nii.gz')
+    im_seg.setFileName(fname_tmp_seg)
+    im_seg.save()
 
-    # Get size of data
-    sct.printv('\nGet data dimensions...', verbose)
-    nx, ny, nz, nt, px, py, pz, pt = im_seg.dim
-    sct.printv('.. matrix size: ' + str(nx) + ' x ' + str(ny) + ' x ' + str(nz), verbose)
-    sct.printv('.. voxel size:  ' + str(px) + 'mm x ' + str(py) + 'mm x ' + str(pz) + 'mm', verbose)
+    # data = im_seg.data
+    # Save as
+    # Get dimensions
+    # nx, ny, nz, nt, px, py, pz, pt = im_seg.dim
 
     # Extract min and max index in Z direction
-    X, Y, Z = (data > 0).nonzero()
-    min_z_index, max_z_index = min(Z), max(Z)
-    x_centerline = [0 for i in range(0, max_z_index - min_z_index + 1)]
-    y_centerline = [0 for i in range(0, max_z_index - min_z_index + 1)]
-    z_centerline = [iz for iz in range(min_z_index, max_z_index + 1)]
-    # Extract segmentation points and average per slice
-    for iz in range(min_z_index, max_z_index + 1):
-        x_seg, y_seg = (data[:, :, iz] > 0).nonzero()
-        x_centerline[iz - min_z_index] = np.mean(x_seg)
-        y_centerline[iz - min_z_index] = np.mean(y_seg)
-    for k in range(len(X)):
-        data[X[k], Y[k], Z[k]] = 0
+    # X, Y, Z = (data > 0).nonzero()
+    # min_z_index, max_z_index = min(Z), max(Z)
+    # x_centerline = [0 for i in range(0, max_z_index - min_z_index + 1)]
+    # y_centerline = [0 for i in range(0, max_z_index - min_z_index + 1)]
+    # z_centerline = [iz for iz in range(min_z_index, max_z_index + 1)]
+    # # Extract segmentation points and average per slice
+    # for iz in range(min_z_index, max_z_index + 1):
+    #     x_seg, y_seg = (data[:, :, iz] > 0).nonzero()
+    #     x_centerline[iz - min_z_index] = np.mean(x_seg)
+    #     y_centerline[iz - min_z_index] = np.mean(y_seg)
+    # for k in range(len(X)):
+    #     data[X[k], Y[k], Z[k]] = 0
 
     # extract centerline and smooth it
     if use_phys_coord:
         # fit centerline, smooth it and return the first derivative (in physical space)
-        x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv = smooth_centerline(
-            'segmentation_RPI.nii.gz', algo_fitting=algo_fitting, type_window=type_window, window_length=window_length,
+        x_centerline_fit, y_centerline_fit, z_centerline, \
+        x_centerline_deriv, y_centerline_deriv, z_centerline_deriv = smooth_centerline(
+            fname_tmp_seg, algo_fitting=algo_fitting, type_window=type_window, window_length=window_length,
             nurbs_pts_number=3000, phys_coordinates=True, verbose=verbose, all_slices=False)
         centerline = Centerline(x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv,
                                 y_centerline_deriv, z_centerline_deriv)
 
-        # average centerline coordinates over slices of the image
-        x_centerline_fit_rescorr, y_centerline_fit_rescorr, z_centerline_rescorr, x_centerline_deriv_rescorr, y_centerline_deriv_rescorr, z_centerline_deriv_rescorr = centerline.average_coordinates_over_slices(
-            im_seg)
+        # average centerline coordinates over slices of the image (floating point)
+        x_centerline_fit_rescorr, y_centerline_fit_rescorr, z_centerline_rescorr, \
+        x_centerline_deriv_rescorr, y_centerline_deriv_rescorr, z_centerline_deriv_rescorr = \
+            centerline.average_coordinates_over_slices(im_seg)
 
-        # compute z_centerline in image coordinates for usage in vertebrae mapping
+        # compute z_centerline in image coordinates (discrete)
         voxel_coordinates = im_seg.transfo_phys2pix(
             [[x_centerline_fit_rescorr[i], y_centerline_fit_rescorr[i], z_centerline_rescorr[i]] for i in
              range(len(z_centerline_rescorr))])
@@ -295,7 +314,8 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fi
 
     else:
         # fit centerline, smooth it and return the first derivative (in voxel space but FITTED coordinates)
-        x_centerline_voxel, y_centerline_voxel, z_centerline_voxel, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv = smooth_centerline(
+        x_centerline_voxel, y_centerline_voxel, z_centerline_voxel, \
+        x_centerline_deriv, y_centerline_deriv, z_centerline_deriv = smooth_centerline(
             'segmentation_RPI.nii.gz', algo_fitting=algo_fitting, type_window=type_window, window_length=window_length,
             nurbs_pts_number=3000, phys_coordinates=False, verbose=verbose, all_slices=True)
 
@@ -328,6 +348,8 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fi
         plt.show()
 
     # Create an image with the centerline
+    im_centerline = im_seg.copy()
+
     min_z_index, max_z_index = int(round(min(z_centerline_voxel))), int(round(max(z_centerline_voxel)))
     for iz in range(min_z_index, max_z_index + 1):
         data[int(round(x_centerline_voxel[iz - min_z_index])), int(round(y_centerline_voxel[iz - min_z_index])), int(
@@ -336,7 +358,7 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fi
     # hdr.set_data_dtype('uint8') # set imagetype to uint8
     sct.printv('\nWrite NIFTI volumes...', verbose)
     im_seg.data = data
-    im_seg.setFileName('centerline_RPI.nii.gz')
+    im_seg.setFileName(file_out+'.nii.gz')
     im_seg.changeType('uint8')
     im_seg.save()
 

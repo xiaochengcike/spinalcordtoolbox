@@ -840,7 +840,7 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
     # if user specified slices of interest
     slices = '2,3:10,11'
     vert_levels = '3:5'
-    perslice = 0  # TODO: define above
+    perslice = 1  # TODO: define above
     perlevel = 1  # TODO: define above
     # TODO: refactor the chunk below and make it a module because it is the same as in sct_extract_metric() and shape
     if slices:
@@ -893,9 +893,10 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
         try:
             # convert list of strings into list of int to use as index
             ind_slicegroup = [int(i) for i in slicegroup.split(',')]
-            # if perlevel:
-            vertgroup = vertgroups[slicegroups.index(slicegroup)]
-            # else:
+            if vert_levels:
+                vertgroup = vertgroups[slicegroups.index(slicegroup)]
+            else:
+                vertgroup = ''
             #     vertgroup = vertgroups[0]
             # print vertgroup
             # vert_levels = vert_levels.replace(",", ";")

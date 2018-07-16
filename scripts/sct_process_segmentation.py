@@ -24,7 +24,7 @@
 # - length: xxx.csv (spinal cord length)
 # TODO: the import of scipy.misc imsave was moved to the specific cases (orth and ellipse) in order to avoid issue #62. This has to be cleaned in the future.
 
-import sys, io, os, shutil, time, math
+import sys, os, time, math
 
 import numpy as np
 import scipy
@@ -51,7 +51,6 @@ class Param:
         self.debug = 0
         self.verbose = 1  # verbose
         self.remove_temp_files = 1
-        # self.smoothing_param = 0  # window size (in mm) for smoothing CSA along z. 0 for no smoothing.
         self.slices = ''
         self.type_window = 'hanning'  # for smooth_centerline @sct_straighten_spinalcord
         self.window_length = 50  # for smooth_centerline @sct_straighten_spinalcord
@@ -193,12 +192,6 @@ def main(args):
     param = Param()
 
     # Initialization
-    path_script = os.path.dirname(__file__)
-    fsloutput = 'export FSLOUTPUTTYPE=NIFTI; '  # for faster processing, all outputs are in NIFTI
-    processes = ['centerline', 'csa', 'length', 'shape']
-    start_time = time.time()
-    # spline_smoothing = param.spline_smoothing
-    # smoothing_param = param.smoothing_param
     slices = param.slices
     angle_correction = True
     use_phys_coord = True
@@ -221,8 +214,6 @@ def main(args):
         vert_lev = ''
     if '-r' in arguments:
         remove_temp_files = arguments['-r']
-    # if '-size' in arguments:
-    #     smoothing_param = arguments['-size']
     if '-vertfile' in arguments:
         fname_vertebral_labeling = arguments['-vertfile']
     if '-perlevel' in arguments:
@@ -253,13 +244,9 @@ def main(args):
     # update fields
     param.verbose = verbose
 
-    # sct.printv(arguments)
-    sct.printv('\nCheck parameters:')
-    sct.printv('.. segmentation file:             ' + fname_segmentation)
-
     if name_process == 'centerline':
         fname_out = extract_centerline(fname_segmentation, remove_temp_files, verbose=param.verbose,
-                                          algo_fitting=param.algo_fitting, use_phys_coord=use_phys_coord)
+                                       algo_fitting=param.algo_fitting, use_phys_coord=use_phys_coord)
         sct.copy(fname_out, output_folder)
         sct.display_viewer_syntax([fname_segmentation, os.path.join(output_folder, fname_out)],
                                   colormaps=['gray', 'red'], opacities=['', '1'])
@@ -278,8 +265,8 @@ def main(args):
         label_vert(fname_segmentation, fname_disc_label, fname_out=fname_out, verbose=verbose)
 
     if name_process == 'length':
-        result_length = compute_length(fname_segmentation, remove_temp_files, output_folder, overwrite, slices,
-                                       vert_lev, fname_vertebral_labeling, verbose=verbose)
+        compute_length(fname_segmentation, remove_temp_files, output_folder, overwrite, slices,
+                       vert_lev, fname_vertebral_labeling, verbose=verbose)
 
     if name_process == 'shape':
         fname_disks = None
@@ -287,8 +274,6 @@ def main(args):
             fname_disks = arguments['-discfile']
         compute_shape(fname_segmentation, remove_temp_files, output_folder, overwrite, slices, vert_lev,
                       fname_disks=fname_disks, verbose=verbose)
-
-    # End of Main
 
 
 def compute_shape(fname_segmentation, remove_temp_files, output_folder, overwrite, slices, vert_levels,

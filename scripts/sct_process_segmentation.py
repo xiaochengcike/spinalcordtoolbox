@@ -96,37 +96,35 @@ def get_parser():
                       description="""In the case you specified, in flag \"-ofolder\", a pre-existing folder that already includes a .xls result file (see flags \"-p csa\" and \"-z\" or \"-vert\"), this option will allow you to overwrite the .xls file (\"-overwrite 1\") or to add the results to it (\"-overwrite 0\").""",
                       mandatory=False,
                       default_value=0)
-    parser.add_option(name='-s',
-                      type_value=None,
-                      description='Window size (in mm) for smoothing CSA. 0 for no smoothing.',
-                      mandatory=False,
-                      deprecated_by='-size')
     parser.add_option(name='-z',
                       type_value='str',
                       description='Slice range to compute the CSA across (requires \"-p csa\").',
                       mandatory=False,
                       example='5:23')
-    parser.add_option(name='-l',
-                      type_value='str',
-                      description='Vertebral levels to compute the CSA across (requires \"-p csa\"). Example: 2:9 for C2 to T2.',
+    parser.add_option(name='-perslice',
+                      type_value='int',
+                      description='Set to 1 to output one metric per slice instead of a single output metric.'
+                                  'Please note that when methods ml or map is used, outputing a single '
+                                  'metric per slice and then averaging them all is not the same as outputting a single'
+                                  'metric at once across all slices.',
                       mandatory=False,
-                      deprecated_by='-vert',
-                      example='2:9')
+                      default_value=0)
     parser.add_option(name='-vert',
                       type_value='str',
                       description='Vertebral levels to compute the CSA across (requires \"-p csa\"). Example: 2:9 for C2 to T2.',
                       mandatory=False,
                       example='2:9')
-    parser.add_option(name='-t',
-                      type_value='image_nifti',
-                      description='Vertebral labeling file. Only use with flag -vert',
-                      mandatory=False,
-                      deprecated_by='-vertfile')
     parser.add_option(name='-vertfile',
                       type_value='str',
                       description='Vertebral labeling file. Only use with flag -vert',
                       default_value='./label/template/PAM50_levels.nii.gz',
                       mandatory=False)
+    parser.add_option(name='-perlevel',
+                      type_value='int',
+                      description='Set to 1 to output one metric per vertebral level instead of a single '
+                                  'output metric.',
+                      mandatory=False,
+                      default_value=0)
     parser.add_option(name='-discfile',
                       type_value='image_nifti',
                       description='Disc labeling with the convention "disc labelvalue=3 ==> disc C2/C3". Only use with -p label-vert',
@@ -212,10 +210,18 @@ def main(args):
     #     smoothing_param = arguments['-size']
     if '-vertfile' in arguments:
         fname_vertebral_labeling = arguments['-vertfile']
+    if '-perlevel' in arguments:
+        perlevel = arguments['-perlevel']
+    else:
+        perlevel = 0
     if '-v' in arguments:
         verbose = int(arguments['-v'])
     if '-z' in arguments:
         slices = arguments['-z']
+    if '-perslice' in arguments:
+        perslice = arguments['-perslice']
+    else:
+        perslice = 0
     if '-a' in arguments:
         param.algo_fitting = arguments['-a']
     if '-no-angle' in arguments:
@@ -245,8 +251,9 @@ def main(args):
 
     if name_process == 'csa':
         compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_temp_files, slices, vert_lev,
-                    fname_vertebral_labeling, algo_fitting=param.algo_fitting, type_window=param.type_window,
-                    window_length=param.window_length, angle_correction=angle_correction, use_phys_coord=use_phys_coord)
+                    fname_vertebral_labeling, perslice=perslice, perlevel=perlevel, algo_fitting=param.algo_fitting,
+                    type_window=param.type_window, window_length=param.window_length,
+                    angle_correction=angle_correction, use_phys_coord=use_phys_coord)
 
     if name_process == 'label-vert':
         if '-discfile' in arguments:
@@ -507,18 +514,6 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fi
     sct.printv('.. matrix size: ' + str(nx) + ' x ' + str(ny) + ' x ' + str(nz), verbose)
     sct.printv('.. voxel size:  ' + str(px) + 'mm x ' + str(py) + 'mm x ' + str(pz) + 'mm', verbose)
 
-    # # Get dimension
-    # sct.printv('\nGet dimensions...', verbose)
-    # nx, ny, nz, nt, px, py, pz, pt = im_seg.dim
-    #
-    # # Extract orientation of the input segmentation
-    # orientation = get_orientation(im_seg)
-    # sct.printv('\nOrientation of segmentation image: ' + orientation, verbose)
-    #
-    # sct.printv('\nOpen segmentation volume...', verbose)
-    # data = im_seg.data
-    # hdr = im_seg.hdr
-
     # Extract min and max index in Z direction
     X, Y, Z = (data > 0).nonzero()
     min_z_index, max_z_index = min(Z), max(Z)
@@ -640,8 +635,8 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fi
 # compute_csa
 # ==========================================================================================
 def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_temp_files, slices, vert_levels,
-                fname_vertebral_labeling='', algo_fitting='hanning', type_window='hanning', window_length=80,
-                angle_correction=True, use_phys_coord=True):
+                fname_vertebral_labeling='', perslice=0, perlevel=0, algo_fitting='hanning',
+                type_window='hanning', window_length=80, angle_correction=True, use_phys_coord=True):
     # TODO: do everything in RAM instead of adding unecessary i/o
 
     # Extract path, file and extension
@@ -746,28 +741,6 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
         csa[iz - min_z_index] = number_voxels * px * py * np.cos(angle)
         angles[iz - min_z_index] = math.degrees(angle)
 
-    # sct.printv('\nSmooth CSA across slices...', verbose)
-    # if smoothing_param:
-    #     from msct_smooth import smoothing_window
-    #     sct.printv('.. Hanning window: ' + str(smoothing_param) + ' mm', verbose)
-    #     csa_smooth = smoothing_window(csa, window_len=smoothing_param / pz, window='hanning', verbose=0)
-    #     # display figure
-    #     if verbose == 2:
-    #         import matplotlib.pyplot as plt
-    #         plt.figure()
-    #         z_centerline_scaled = [x * pz for x in z_centerline]
-    #         pltx, = plt.plot(z_centerline_scaled, csa, 'bo')
-    #         pltx_fit, = plt.plot(z_centerline_scaled, csa_smooth, 'r', linewidth=2)
-    #         plt.title("Cross-sectional area (CSA)")
-    #         plt.xlabel('z (mm)')
-    #         plt.ylabel('CSA (mm^2)')
-    #         plt.legend([pltx, pltx_fit], ['Raw', 'Smoothed'])
-    #         plt.show()
-    #     # update variable
-    #     csa = csa_smooth
-    # else:
-    #     sct.printv('.. No smoothing!', verbose)
-
     if OUTPUT_CSA_VOLUME:
         # output volume of csa values
         # TODO: only output if asked for (people don't use it)
@@ -838,10 +811,8 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
     os.chdir(curdir)
 
     # if user specified slices of interest
-    slices = '2,3:10,11'
-    vert_levels = '3:5'
-    perslice = 1  # TODO: define above
-    perlevel = 0  # TODO: define above
+    # slices = '2,3:10,11'
+    # vert_levels = '3:5'
     # TODO: refactor the chunk below and make it a module because it is the same as in sct_extract_metric() and shape
     if slices:
         list_slices = parse_num_list(slices)
@@ -850,7 +821,7 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
     list_slices.reverse()  # more intuitive to list slices in descending mode (i.e. from head to toes)
     # if perslice with slices: ['1', '2', '3', '4']
     # important: each slice number should be separated by "," not ":"
-    slicegroups = [str(i) for i in slices_list]
+    slicegroups = [str(i) for i in list_slices]
     # if user does not want to output metric per slice, then create a single element in slicegroups
     if not perslice:
         # ['1', '2', '3', '4'] -> ['1,2,3,4']
@@ -880,13 +851,7 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
             # ['2', '3', '4'] -> ['2,3,4']
             vertgroups = [','.join(vertgroups)]
             slicegroups = [','.join(slicegroups)]
-        # else:
-        # join all slices into a single slicegroups
-        # TODO: the [0] below smells bad-- check that in order to unify the chunk with extract_metric
-        # slicegroups.append(','.join([str(i) for i in slices[0]]))
     # Create output csv file
-    # sct.printv('Display CSA per slice:', verbose)
-    # file_results = open(os.path.join(output_folder, 'csa_per_slice.txt'), 'w')
     fname_out = "csa.csv"  # TODO: define above
     file_results = open(fname_out, 'w')
     file_results.write('Slice [z],Vertebral level,CSA [mm^2],Angle between cord and S-I direction [deg]\n')
@@ -899,9 +864,6 @@ def compute_csa(fname_segmentation, output_folder, overwrite, verbose, remove_te
                 vertgroup = vertgroups[slicegroups.index(slicegroup)]
             else:
                 vertgroup = ''
-            #     vertgroup = vertgroups[0]
-            # print vertgroup
-            # vert_levels = vert_levels.replace(",", ";")
             # average metrics within slicegroup
             # TODO: ADD STD
             # change "," for ";" otherwise it will be parsed by the CSV format

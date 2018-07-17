@@ -19,13 +19,15 @@ OUTPUT_CSA_VOLUME = 0
 OUTPUT_ANGLE_VOLUME = 0
 
 
-def compute_shape(fname_segmentation, remove_temp_files, file_out, overwrite, slices, vert_levels,
+def compute_shape(fname_segmentation, remove_temp_files, file_out='shape', overwrite=0,
                   fname_disks=None, verbose=1):
     """
     This function characterizes the shape of the spinal cord, based on the segmentation
     Shape properties are computed along the spinal cord and averaged per z-slices.
     Option is to provide intervertebral disks to average shape properties over vertebral levels (fname_disks).
     """
+    # TODO: deal with overwrite, slices, etc.
+    # TODO: check if shape is corrected for cord curvature
     # List of properties to compute on spinal cord
     property_list = ['area',
                      'diameters',
@@ -43,8 +45,7 @@ def compute_shape(fname_segmentation, remove_temp_files, file_out, overwrite, sl
                                                                                      remove_temp_files=remove_temp_files,
                                                                                      verbose=verbose)
 
-    path_data, file_data, ext_data = sct.extract_fname(fname_segmentation)
-    fname_output_csv = os.path.join(output_folder, file_data + '_shape.csv')
+    fname_output_csv = file_out + '.csv'
 
     # choose sorting mode: z-slice or vertebral levels, depending on input (fname_disks)
     rejected_values = []  # some values are not vertebral levels

@@ -261,7 +261,7 @@ def main(args):
         fname_disks = None
         if '-discfile' in arguments:
             fname_disks = arguments['-discfile']
-        process_seg.compute_shape(fname_segmentation, remove_temp_files, file_out, overwrite, slices, vert_lev,
+        process_seg.compute_shape(fname_segmentation, remove_temp_files, file_out=file_out, overwrite=0,
                                   fname_disks=fname_disks, verbose=verbose)
 
 

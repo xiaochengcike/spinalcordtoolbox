@@ -2,13 +2,14 @@
 # -*- coding: utf-8
 # Functions dealing with centerline detection and manipulation
 
+# TODO: rename this file "centerline" and move it to the parent folder
+
 import os, datetime
 import nibabel as nib
 import numpy as np
 import sct_utils as sct
 from sct_image import orientation
 from msct_image import Image
-
 
 
 def centerline2roi(fname_image, folder_output='./', verbose=0):

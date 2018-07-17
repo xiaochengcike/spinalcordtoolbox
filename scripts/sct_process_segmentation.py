@@ -234,9 +234,6 @@ def main(args):
         process_seg.extract_centerline(fname_segmentation, remove_temp_files, verbose=param.verbose,
                                        algo_fitting=param.algo_fitting, use_phys_coord=use_phys_coord,
                                        file_out=file_out)
-        # sct.copy(fname_out, output_folder)
-        # sct.display_viewer_syntax([fname_segmentation, os.path.join(output_folder, fname_out)],
-        #                           colormaps=['gray', 'red'], opacities=['', '1'])
 
     if name_process == 'csa':
         if not file_out:

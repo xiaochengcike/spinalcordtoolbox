@@ -19,7 +19,7 @@ OUTPUT_CSA_VOLUME = 0
 OUTPUT_ANGLE_VOLUME = 0
 
 
-def compute_shape(fname_segmentation, remove_temp_files, output_folder, overwrite, slices, vert_levels,
+def compute_shape(fname_segmentation, remove_temp_files, file_out, overwrite, slices, vert_levels,
                   fname_disks=None, verbose=1):
     """
     This function characterizes the shape of the spinal cord, based on the segmentation
@@ -349,7 +349,7 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fi
 def compute_csa(fname_segmentation, overwrite, verbose, remove_temp_files, slices, vert_levels,
                 fname_vertebral_labeling='', perslice=0, perlevel=0, algo_fitting='hanning',
                 type_window='hanning', window_length=80, angle_correction=True, use_phys_coord=True,
-                fname_out='csa.csv'):
+                file_out='csa'):
     # TODO: do everything in RAM instead of adding unecessary i/o
 
     # Extract path, file and extension
@@ -559,7 +559,8 @@ def compute_csa(fname_segmentation, overwrite, verbose, remove_temp_files, slice
             vertgroups = [','.join(vertgroups)]
             slicegroups = [','.join(slicegroups)]
     # Create output csv file
-    file_results = open(fname_out, 'w')
+    fname_csa_csv = file_out + '.csv'
+    file_results = open(fname_csa_csv, 'w')
     file_results.write('Slice [z],Vertebral level,CSA [mm^2],Angle between cord and S-I direction [deg]\n')
     # loop across slice group
     for slicegroup in slicegroups:

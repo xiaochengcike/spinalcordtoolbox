@@ -256,10 +256,12 @@ def main(args):
                                    vert_lev, fname_vertebral_labeling, verbose=verbose)
 
     if name_process == 'shape':
+        if not file_out:
+            file_out = 'shape'
         fname_disks = None
         if '-discfile' in arguments:
             fname_disks = arguments['-discfile']
-        process_seg.compute_shape(fname_segmentation, remove_temp_files, output_folder, overwrite, slices, vert_lev,
+        process_seg.compute_shape(fname_segmentation, remove_temp_files, file_out, overwrite, slices, vert_lev,
                                   fname_disks=fname_disks, verbose=verbose)
 
 

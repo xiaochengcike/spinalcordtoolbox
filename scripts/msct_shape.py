@@ -31,30 +31,6 @@ from msct_types import Centerline
 from sct_straighten_spinalcord import smooth_centerline
 
 
-def find_contours(image, threshold=0.5, smooth_sigma=0.0, verbose=1):
-    image_input = image
-    if smooth_sigma != 0.0:
-        image_input = smoothing(image_input, sigma=smooth_sigma)
-    sct.printv(np.min(image_input), np.max(image_input))
-    contours = measure.find_contours(image_input, threshold)
-
-    if verbose == 2:
-        import matplotlib.pyplot as plt
-        # Display the image and plot all contours found
-        fig, ax = plt.subplots()
-        ax.imshow(image_input, interpolation='nearest', cmap=plt.cm.gray)
-
-        for n, contour in enumerate(contours):
-            ax.plot(contour[:, 1], contour[:, 0], linewidth=2, color='red')
-
-        ax.axis('image')
-        ax.set_xticks([])
-        ax.set_yticks([])
-        plt.show()
-
-    return contours
-
-
 def smoothing(image, sigma=1.0):
     return filters.gaussian(image, sigma=sigma)
 

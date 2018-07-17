@@ -4,8 +4,10 @@
 
 import numpy as np
 import nibabel as nib
+import csv
 import pytest
 from spinalcordtoolbox import process_seg
+
 
 @pytest.fixture(scope="session")
 def dummy_segmentation():
@@ -22,6 +24,19 @@ def dummy_segmentation():
     nib.save(img, fname_seg)
     return fname_seg
 
+
+# noinspection 801,PyShadowingNames
 def test_extract_centerline(dummy_segmentation):
+    """Test generation of centerline"""
     process_seg.extract_centerline(dummy_segmentation, 0, verbose=0, algo_fitting='hanning', type_window='hanning',
                                    window_length=80, use_phys_coord=True, file_out='centerline')
+    # open created csv file
+    centerline_out = []
+    with open('centerline.csv', 'rb') as f:
+        reader = csv.reader(f)
+        reader.next()  # skip header
+        for row in reader:
+            centerline_out.append([int(i) for i in row])
+    # build ground-truth centerline
+    centerline_true = [[i, 9, 10] for i in range(20)]
+    assert centerline_out == centerline_true

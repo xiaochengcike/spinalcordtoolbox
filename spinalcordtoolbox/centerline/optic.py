@@ -21,6 +21,7 @@ def centerline2roi(fname_image, folder_output='./', verbose=0):
     :param verbose: adjusts the verbosity of the logging.
     :returns: filename of the .roi centerline that has been created
     """
+    # TODO: change folder_output to fname_out
     path_data, file_data, ext_data = sct.extract_fname(fname_image)
     fname_output = file_data + '.roi'
 

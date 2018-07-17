@@ -43,7 +43,6 @@ def centerline2roi(fname_image, folder_output='./', verbose=0):
     coordinates_centerline = im.getNonZeroCoordinates(sorting='z')
 
     f = open(fname_output, "w")
-    sct.printv('\nWriting ROI file...', verbose)
 
     for coord in coordinates_centerline:
         coord_phys_center = im.transfo_pix2phys([[(nx - 1) / 2.0, (ny - 1) / 2.0, coord.z]])[0]
@@ -55,6 +54,7 @@ def centerline2roi(fname_image, folder_output='./', verbose=0):
                                     position_y=coord_phys_center[1] - coord_phys[1]))
 
     f.close()
+    sct.printv('\nGenerated ROI file: ' + fname_output, verbose)
 
     if os.path.abspath(folder_output) != os.getcwd():
         sct.copy(fname_output, folder_output)

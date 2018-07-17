@@ -1,0 +1,82 @@
+#!/usr/bin/env python
+# -*- coding: utf-8
+# Functions dealing with metrics quantification across slices and/or vertebral levels and output (csv, etc.)
+
+import os, math
+import pandas as pd
+import numpy as np
+import sct_utils as sct
+from sct_image import Image, set_orientation
+from sct_straighten_spinalcord import smooth_centerline
+import msct_shape
+from msct_types import Centerline
+from spinalcordtoolbox.utils import parse_num_list
+from spinalcordtoolbox.template import get_slices_from_vertebral_levels
+from spinalcordtoolbox.centerline import optic
+
+
+def average_per_slice_or_level(metrics, header="", slices=[], perslice=1, vert_levels=[], perlevel=0, fname_vert_levels="", file_out="metrics", overwrite=1):
+
+    # TODO: check last dimension is S-I
+    nz = len(metrics[0])  # retrieve number of slices from the first metric (assuming they all have the same shape)
+    if slices:
+        # if user specified slices of interest, convert to comma-separated string: '2:5,6' -> '2,3,4,5,6'
+        list_slices = parse_num_list(slices)
+    else:
+        # if no slices is specified, use all slices in the image
+        list_slices = np.arange(nz).tolist()
+    list_slices.reverse()  # more intuitive to list slices in descending mode (i.e. from head to toes)
+    # if perslice with slices: ['1', '2', '3', '4']
+    # important: each slice number should be separated by "," not ":"
+    slicegroups = [str(i) for i in list_slices]
+    # if user does not want to output metric per slice, then create a single element in slicegroups
+    if not perslice:
+        # ['1', '2', '3', '4'] -> ['1,2,3,4']
+        slicegroups = [','.join(slicegroups)]
+    # if user selected vertebral levels
+    if vert_levels:
+        # Load vertebral levels
+        im_vertebral_labeling = Image(fname_vert_levels)
+        im_vertebral_labeling.change_orientation(orientation='RPI')
+        # Re-define slices_of_interest according to the vertebral levels selected by user
+        list_levels = parse_num_list(vert_levels)
+        slicegroups = []
+        vertgroups = [str(i) for i in list_levels]
+        # for each level, find the matching slices and group them
+        for level in list_levels:
+            list_slices = get_slices_from_vertebral_levels(im_vertebral_labeling, level)
+            list_slices.reverse()
+            slicegroups.append(','.join([str(i) for i in list_slices]))
+        # if user does not want to output metric per vert level, create a single element in vertgroups
+        if not perlevel:
+            # ['2', '3', '4'] -> ['2,3,4']
+            vertgroups = [','.join(vertgroups)]
+            slicegroups = [','.join(slicegroups)]
+    # Create output csv file
+    fname_out = file_out + '.csv'
+    file_results = open(fname_out, 'w')
+    file_results.write(','.join(["Slice [z]", "Vertebral level"] + header) + '\n')
+    # loop across slice group
+    for slicegroup in slicegroups:
+        try:
+            # convert list of strings into list of int to use as index
+            ind_slicegroup = [int(i) for i in slicegroup.split(',')]
+            if vert_levels:
+                vertgroup = vertgroups[slicegroups.index(slicegroup)]
+            else:
+                vertgroup = ''
+            # average metrics within slicegroup
+            # TODO: ADD STD
+            # change "," for ";" otherwise it will be parsed by the CSV format
+            # TODO: instead of having a long list of ;-separated numbers, it would be nicer to separate long number
+            # TODO (cont.) suites with ":". E.g.: '1,2,3,4,5' -> '1:5'. See #1932
+            slicegroup = slicegroup.replace(",", ";")
+            vertgroup = vertgroup.replace(",", ";")
+            # build csv file
+            file_results.write(','.join([slicegroup, vertgroup] + [str(np.mean(i[ind_slicegroup])) for i in metrics])
+                               + '\n')
+        except ValueError:
+            # the slice request is out of the range of the image
+            sct.printv('The slice(s) requested is out of the range of the image', type='warning')
+    file_results.close()
+    # TODO: printout csv

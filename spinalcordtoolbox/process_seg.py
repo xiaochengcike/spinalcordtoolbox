@@ -13,6 +13,7 @@ from msct_types import Centerline
 from spinalcordtoolbox.utils import parse_num_list
 from spinalcordtoolbox.template import get_slices_from_vertebral_levels
 from spinalcordtoolbox.centerline import optic
+from spinalcordtoolbox.metrics import average_per_slice_or_level
 
 # on v3.2.2 and earlier, the following volumes were output by default, which was a waste of time (people don't use it)
 OUTPUT_CSA_VOLUME = 0
@@ -523,71 +524,11 @@ def compute_csa(fname_segmentation, overwrite, verbose, remove_temp_files, slice
 
     # come back to native directory
     os.chdir(curdir)
-
-    # if user specified slices of interest
-    # slices = '2,3:10,11'
-    # vert_levels = '3:5'
-    # TODO: refactor the chunk below and make it a module because it is the same as in sct_extract_metric() and shape
-    if slices:
-        list_slices = parse_num_list(slices)
-    else:
-        list_slices = np.arange(nz).tolist()
-    list_slices.reverse()  # more intuitive to list slices in descending mode (i.e. from head to toes)
-    # if perslice with slices: ['1', '2', '3', '4']
-    # important: each slice number should be separated by "," not ":"
-    slicegroups = [str(i) for i in list_slices]
-    # if user does not want to output metric per slice, then create a single element in slicegroups
-    if not perslice:
-        # ['1', '2', '3', '4'] -> ['1,2,3,4']
-        slicegroups = [','.join(slicegroups)]
-    # if user selected vertebral levels
-    if vert_levels:
-        # Load vertebral levels
-        im_vertebral_labeling = Image(fname_vertebral_labeling)
-        im_vertebral_labeling.change_orientation(orientation='RPI')
-        # Re-define slices_of_interest according to the vertebral levels selected by user
-        list_levels = parse_num_list(vert_levels)
-        slicegroups = []
-        vertgroups = [str(i) for i in list_levels]
-        # for each level, find the matching slices and group them
-        for level in list_levels:
-            list_slices = get_slices_from_vertebral_levels(im_vertebral_labeling, level)
-            list_slices.reverse()
-            slicegroups.append(','.join([str(i) for i in list_slices]))
-        # if user does not want to output metric per vert level, create a single element in vertgroups
-        if not perlevel:
-            # ['2', '3', '4'] -> ['2,3,4']
-            vertgroups = [','.join(vertgroups)]
-            slicegroups = [','.join(slicegroups)]
-    # Create output csv file
-    fname_csa_csv = file_out + '.csv'
-    file_results = open(fname_csa_csv, 'w')
-    file_results.write('Slice [z],Vertebral level,CSA [mm^2],Angle between cord and S-I direction [deg]\n')
-    # loop across slice group
-    for slicegroup in slicegroups:
-        try:
-            # convert list of strings into list of int to use as index
-            ind_slicegroup = [int(i) for i in slicegroup.split(',')]
-            if vert_levels:
-                vertgroup = vertgroups[slicegroups.index(slicegroup)]
-            else:
-                vertgroup = ''
-            # average metrics within slicegroup
-            # TODO: ADD STD
-            # change "," for ";" otherwise it will be parsed by the CSV format
-            # TODO: instead of having a long list of ;-separated numbers, it would be nicer to separate long number
-            # TODO (cont.) suites with ":". E.g.: '1,2,3,4,5' -> '1:5'. See #1932
-            slicegroup = slicegroup.replace(",", ";")
-            vertgroup = vertgroup.replace(",", ";")
-            file_results.write(','.join([slicegroup,
-                                         vertgroup,
-                                         str(np.mean(csa[ind_slicegroup])),
-                                         str(np.mean(angles[ind_slicegroup]))]) + '\n')
-        except ValueError:
-            # the slice request is out of the range of the image
-            sct.printv('The slice(s) requested is out of the range of the image', type='warning')
-    file_results.close()
-    # TODO: printout csv
+    #
+    # TODO: make sure angle has same shape as csa
+    average_per_slice_or_level([csa, angle], header=['CSA [mm^2]','Angle between cord and S-I direction [deg]'],
+                               slices=slices, perslice=perslice, vert_levels=vert_levels, perlevel=perlevel,
+                               fname_vert_levels=fname_vertebral_labeling, file_out=file_out, overwrite=overwrite)
 
     # Remove temporary files
     if remove_temp_files:

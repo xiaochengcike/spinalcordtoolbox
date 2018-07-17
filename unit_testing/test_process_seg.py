@@ -47,7 +47,7 @@ def test_compute_csa(dummy_segmentation):
     """Test computation of cross-sectional area from input segmentation"""
     process_seg.compute_csa(dummy_segmentation, 1, 1, 1, '', '', fname_vertebral_labeling='', perslice=0, perlevel=0,
                             algo_fitting='hanning', type_window='hanning', window_length=10, angle_correction=True,
-                            use_phys_coord=True, fname_out='csa.csv')
+                            use_phys_coord=True, file_out='csa')
     # open created csv file
     with open('csa.csv', 'rb') as f:
         reader = csv.reader(f)
@@ -55,3 +55,16 @@ def test_compute_csa(dummy_segmentation):
         csa_out, angle_out = reader.next()[2:4]
     assert csa_out == '29.0'
     assert angle_out == '0.0'
+
+
+# noinspection 801,PyShadowingNames
+def test_compute_shape(dummy_segmentation):
+    """Test computation of cross-sectional area from input segmentation"""
+    process_seg.compute_shape(dummy_segmentation, 0, file_out='shape', overwrite=0, fname_discs='', verbose=1)
+    # open created csv file
+    # with open('shape.csv', 'rb') as f:
+    #     reader = csv.reader(f)
+    #     reader.next()  # skip header
+    #     csa_out, angle_out = reader.next()[2:4]
+    # assert csa_out == '29.0'
+    # assert angle_out == '0.0'

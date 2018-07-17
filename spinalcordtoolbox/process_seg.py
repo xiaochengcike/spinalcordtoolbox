@@ -20,11 +20,11 @@ OUTPUT_ANGLE_VOLUME = 0
 
 
 def compute_shape(fname_segmentation, remove_temp_files, file_out='shape', overwrite=0,
-                  fname_disks=None, verbose=1):
+                  fname_discs=None, verbose=1):
     """
     This function characterizes the shape of the spinal cord, based on the segmentation
     Shape properties are computed along the spinal cord and averaged per z-slices.
-    Option is to provide intervertebral disks to average shape properties over vertebral levels (fname_disks).
+    Option is to provide intervertebral disks to average shape properties over vertebral levels (fname_discs).
     """
     # TODO: deal with overwrite, slices, etc.
     # TODO: check if shape is corrected for cord curvature
@@ -39,7 +39,7 @@ def compute_shape(fname_segmentation, remove_temp_files, file_out='shape', overw
 
     property_list, shape_properties = msct_shape.compute_properties_along_centerline(fname_seg_image=fname_segmentation,
                                                                                      property_list=property_list,
-                                                                                     fname_disks_image=fname_disks,
+                                                                                     fname_discs=fname_discs,
                                                                                      smooth_factor=0.0,
                                                                                      interpolation_mode=0,
                                                                                      remove_temp_files=remove_temp_files,
@@ -47,9 +47,9 @@ def compute_shape(fname_segmentation, remove_temp_files, file_out='shape', overw
 
     fname_output_csv = file_out + '.csv'
 
-    # choose sorting mode: z-slice or vertebral levels, depending on input (fname_disks)
+    # choose sorting mode: z-slice or vertebral levels, depending on input (fname_discs)
     rejected_values = []  # some values are not vertebral levels
-    if fname_disks is not None:
+    if fname_discs is not None:
         # average over spinal cord levels
         sorting_mode = 'vertebral_level'
         rejected_values = [0, '0']

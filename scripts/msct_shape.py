@@ -118,7 +118,7 @@ def properties2d(image, resolution=None, verbose=1):
     return sc_properties
 
 
-def compute_properties_along_centerline(fname_seg_image, property_list, fname_disks_image=None, smooth_factor=5.0, interpolation_mode=0, remove_temp_files=1, verbose=1):
+def compute_properties_along_centerline(fname_seg_image, property_list, fname_discs='', smooth_factor=5.0, interpolation_mode=0, remove_temp_files=1, verbose=1):
 
     # Check list of properties
     # If diameters is in the list, compute major and minor axis length and check orientation
@@ -135,8 +135,8 @@ def compute_properties_along_centerline(fname_seg_image, property_list, fname_di
     path_tmp = sct.tmp_create(basename="compute_properties_along_centerline", verbose=verbose)
 
     sct.copy(fname_seg_image, path_tmp)
-    if fname_disks_image is not None:
-        sct.copy(fname_disks_image, path_tmp)
+    if fname_discs:
+        sct.copy(fname_discs, path_tmp)
 
     # go to tmp folder
     curdir = os.getcwd()
@@ -168,8 +168,8 @@ def compute_properties_along_centerline(fname_seg_image, property_list, fname_di
     centerline = Centerline(x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv)
 
     # Compute vertebral distribution along centerline based on position of intervertebral disks
-    if fname_disks_image is not None:
-        fname_disks = os.path.abspath(fname_disks_image)
+    if fname_discs:
+        fname_disks = os.path.abspath(fname_discs)
         path_data, file_data, ext_data = sct.extract_fname(fname_disks)
         im_disks = Image(file_data + ext_data)
         fname_disks_orient = 'disks_rpi' + ext_data
@@ -211,7 +211,7 @@ def compute_properties_along_centerline(fname_seg_image, property_list, fname_di
             sc_properties = properties2d(patch_zero, [resolution, resolution])
             if sc_properties is not None:
                 properties['incremental_length'].append(centerline.incremental_length[index])
-                if fname_disks_image is not None:
+                if fname_discs:
                     properties['distance_from_C1'].append(centerline.dist_points[index])
                     properties['vertebral_level'].append(centerline.l_points[index])
                 properties['z_slice'].append(image.transfo_phys2pix([centerline.points[index]])[0][2])
@@ -263,7 +263,7 @@ def compute_properties_along_centerline(fname_seg_image, property_list, fname_di
     # Display properties on the referential space. Requires intervertebral disks
     if verbose == 2:
         x_increment = 'distance_from_C1'
-        if fname_disks_image is None:
+        if fname_discs:
             x_increment = 'incremental_length'
 
         # Display the image and plot all contours found
@@ -272,7 +272,7 @@ def compute_properties_along_centerline(fname_seg_image, property_list, fname_di
             axes[k].plot(properties[x_increment], properties[property_name])
             axes[k].set_ylabel(property_name)
 
-        if fname_disks_image is not None:
+        if fname_discs:
             properties['distance_disk_from_C1'] = centerline.distance_from_C1label  # distance between each disk and C1 (or first disk)
             xlabel_disks = [centerline.convert_vertlabel2disklabel[label] for label in properties['distance_disk_from_C1']]
             xtick_disks = [properties['distance_disk_from_C1'][label] for label in properties['distance_disk_from_C1']]
@@ -301,14 +301,14 @@ def prepare_data():
     data_subjects, subjects_name = sct_pipeline.generate_data_list(folder_dataset, json_requirements=json_requirements)
 
     fname_seg_images = []
-    fname_disks_images = []
+    fname_discss = []
     group_images = []
 
     for subject_folder in data_subjects:
         if os.path.exists(os.path.join(subject_folder, 't2')):
             if os.path.exists(os.path.join(subject_folder, 't2', 't2_seg_manual.nii.gz')) and os.path.exists(os.path.join(subject_folder, 't2', 't2_disks_manual.nii.gz')):
                 fname_seg_images.append(os.path.join(subject_folder, 't2', 't2_seg_manual.nii.gz'))
-                fname_disks_images.append(os.path.join(subject_folder, 't2', 't2_disks_manual.nii.gz'))
+                fname_discss.append(os.path.join(subject_folder, 't2', 't2_disks_manual.nii.gz'))
                 json_file = io.open(os.path.join(subject_folder, 'dataset_description.json'))
                 dic_info = json.load(json_file)
                 json_file.close()
@@ -327,6 +327,6 @@ def prepare_data():
                      'eccentricity',
                      'solidity']
 
-    average_properties(fname_seg_images, property_list, fname_disks_images, group_images, verbose=1)
+    average_properties(fname_seg_images, property_list, fname_discss, group_images, verbose=1)
 
 """

@@ -246,10 +246,10 @@ def main(args):
 
     if name_process == 'label-vert':
         if '-discfile' in arguments:
-            fname_disc_label = arguments['-discfile']
+            fname_discs = arguments['-discfile']
         else:
             sct.printv('\nERROR: Disc label file is mandatory (flag: -discfile).\n', 1, 'error')
-        process_seg.label_vert(fname_segmentation, fname_disc_label, file_out=file_out, verbose=verbose)
+        process_seg.label_vert(fname_segmentation, fname_discs, file_out=file_out, verbose=verbose)
 
     if name_process == 'length':
         process_seg.compute_length(fname_segmentation, remove_temp_files, output_folder, overwrite, slices,
@@ -260,9 +260,9 @@ def main(args):
             file_out = 'shape'
         fname_disks = None
         if '-discfile' in arguments:
-            fname_disks = arguments['-discfile']
+            fname_discs = arguments['-discfile']
         process_seg.compute_shape(fname_segmentation, remove_temp_files, file_out=file_out, overwrite=0,
-                                  fname_disks=fname_disks, verbose=verbose)
+                                  fname_discs=fname_discs, verbose=verbose)
 
 
 if __name__ == "__main__":

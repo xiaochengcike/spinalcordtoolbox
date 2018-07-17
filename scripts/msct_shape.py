@@ -34,7 +34,7 @@ from sct_straighten_spinalcord import smooth_centerline
 def find_contours(image, threshold=0.5, smooth_sigma=0.0, verbose=1):
     image_input = image
     if smooth_sigma != 0.0:
-        image_input = smoothing(image_input, sigma=smooth_sigma, verbose=verbose)
+        image_input = smoothing(image_input, sigma=smooth_sigma)
     sct.printv(np.min(image_input), np.max(image_input))
     contours = measure.find_contours(image_input, threshold)
 
@@ -55,7 +55,7 @@ def find_contours(image, threshold=0.5, smooth_sigma=0.0, verbose=1):
     return contours
 
 
-def smoothing(image, sigma=1.0, verbose=1):
+def smoothing(image, sigma=1.0):
     return filters.gaussian(image, sigma=sigma)
 
 

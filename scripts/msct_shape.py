@@ -164,8 +164,12 @@ def compute_properties_along_centerline(fname_seg_image, property_list, fname_di
 
     # compute the spinal cord centerline based on the spinal cord segmentation
     number_of_points = 5 * nz
-    x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv = smooth_centerline(fname_segmentation_orient, algo_fitting='nurbs', verbose=verbose, nurbs_pts_number=number_of_points, all_slices=False, phys_coordinates=True, remove_outliers=True)
-    centerline = Centerline(x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv)
+    x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv = \
+        smooth_centerline(fname_segmentation_orient, algo_fitting='nurbs', verbose=verbose,
+                          nurbs_pts_number=number_of_points, all_slices=False, phys_coordinates=True,
+                          remove_outliers=True)
+    centerline = Centerline(x_centerline_fit, y_centerline_fit, z_centerline,
+                            x_centerline_deriv, y_centerline_deriv, z_centerline_deriv)
 
     # Compute vertebral distribution along centerline based on position of intervertebral disks
     if fname_discs:
@@ -199,7 +203,7 @@ def compute_properties_along_centerline(fname_seg_image, property_list, fname_di
             from skimage.morphology import dilation
             patch_zero = np.copy(current_patch)
             patch_zero[patch_zero == value_out] = 0.0
-            patch_borders = dilation(patch_zero) - patch_zero
+            # patch_borders = dilation(patch_zero) - patch_zero
 
             """
             if np.count_nonzero(patch_borders + current_patch == value_out + 1.0) != 0:

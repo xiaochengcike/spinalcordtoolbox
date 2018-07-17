@@ -526,7 +526,7 @@ def compute_csa(fname_segmentation, overwrite, verbose, remove_temp_files, slice
     os.chdir(curdir)
     #
     # TODO: make sure angle has same shape as csa
-    average_per_slice_or_level([csa, angle], header=['CSA [mm^2]','Angle between cord and S-I direction [deg]'],
+    average_per_slice_or_level([csa, angles], header=['CSA [mm^2]','Angle between cord and S-I direction [deg]'],
                                slices=slices, perslice=perslice, vert_levels=vert_levels, perlevel=perlevel,
                                fname_vert_levels=fname_vertebral_labeling, file_out=file_out, overwrite=overwrite)
 

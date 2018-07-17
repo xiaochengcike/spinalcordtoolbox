@@ -86,8 +86,6 @@ def compute_shape(fname_segmentation, remove_temp_files, output_folder, overwrit
     sct.printv('\nDone! Results are save in the file: ' + fname_output_csv, verbose, 'info')
 
 
-# compute the length of the spinal cord
-# ==========================================================================================
 def compute_length(fname_segmentation, remove_temp_files, output_folder, overwrite, slices, vert_levels,
                    fname_vertebral_labeling='', verbose=0):
     from math import sqrt
@@ -217,8 +215,6 @@ def compute_length(fname_segmentation, remove_temp_files, output_folder, overwri
     return length
 
 
-# extract_centerline
-# ==========================================================================================
 def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fitting='hanning', type_window='hanning',
                        window_length=80, use_phys_coord=True, file_out='centerline'):
     """
@@ -235,30 +231,6 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fi
     :return: None
     """
     # TODO: no need for unecessary i/o. Everything could be done in RAM
-    # Extract path, file and extension
-    # fname_segmentation = os.path.abspath(fname_segmentation)
-    # path_data, file_data, ext_data = sct.extract_fname(fname_segmentation)
-
-    # create temporary folder
-    # path_tmp = sct.tmp_create(verbose=verbose)
-
-    # Copying input data to tmp folder
-    # sct.printv('\nCopying data to tmp folder...', verbose)
-    # sct.run(['sct_convert', '-i', fname_segmentation, '-o', os.path.join(path_tmp, "segmentation.nii.gz")], verbose)
-
-    # go to tmp folder
-    # curdir = os.getcwd()
-    # os.chdir(path_tmp)
-
-    # Change orientation of the input centerline into RPI
-    # sct.printv('\nOrient centerline to RPI orientation...', verbose)
-    # fname_segmentation_orient = 'segmentation_RPI.nii.gz'
-    # BELOW DOES NOT WORK (JULIEN, 2015-10-17)
-    # im_seg = Image(file_data+ext_data)
-    # set_orientation(im_seg, 'RPI')
-    # im_seg.setFileName(fname_segmentation_orient)
-    # im_seg.save()
-    # sct.run(['sct_image', '-i', 'segmentation.nii.gz', '-setorient', 'RPI', '-o', 'segmentation_RPI.nii.gz'], verbose)
 
     # Open segmentation volume
     im_seg = Image(fname_segmentation)
@@ -270,23 +242,6 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fi
     im_seg.setFileName(fname_tmp_seg)
     im_seg.save()
     data = im_seg.data
-    # Save as
-    # Get dimensions
-    # nx, ny, nz, nt, px, py, pz, pt = im_seg.dim
-    #
-    # # Extract min and max index in Z direction
-    # X, Y, Z = (data > 0).nonzero()
-    # min_z_index, max_z_index = min(Z), max(Z)
-    # x_centerline = [0 for i in range(0, max_z_index - min_z_index + 1)]
-    # y_centerline = [0 for i in range(0, max_z_index - min_z_index + 1)]
-    # z_centerline = [iz for iz in range(min_z_index, max_z_index + 1)]
-    # # Extract segmentation points and average per slice
-    # for iz in range(min_z_index, max_z_index + 1):
-    #     x_seg, y_seg = (data[:, :, iz] > 0).nonzero()
-    #     x_centerline[iz - min_z_index] = np.mean(x_seg)
-    #     y_centerline[iz - min_z_index] = np.mean(y_seg)
-    # for k in range(len(X)):
-    #     data[X[k], Y[k], Z[k]] = 0
 
     # extract centerline and smooth it
     if use_phys_coord:
@@ -347,6 +302,7 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fi
         plt.show()
 
     # Create an image with the centerline
+    # TODO: write the center of mass, not the discrete image coordinate (issue #1938)
     im_centerline = im_seg.copy()
     data_centerline = im_centerline.data * 0
     # Find z-boundaries above which and below which there is no non-null slices
@@ -390,9 +346,6 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fi
         sct.rmtree(path_tmp)
 
 
-
-# compute_csa
-# ==========================================================================================
 def compute_csa(fname_segmentation, overwrite, verbose, remove_temp_files, slices, vert_levels,
                 fname_vertebral_labeling='', perslice=0, perlevel=0, algo_fitting='hanning',
                 type_window='hanning', window_length=80, angle_correction=True, use_phys_coord=True,

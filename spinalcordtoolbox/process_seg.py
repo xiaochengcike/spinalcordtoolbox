@@ -322,7 +322,7 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fi
     im_centerline.changeType('uint8')
     im_centerline.save()
     # display stuff
-    sct.display_viewer_syntax([fname_segmentation, fname_centerline], colormaps=['greyscale', 'green'])
+    sct.display_viewer_syntax([fname_segmentation, fname_centerline], colormaps=['gray', 'green'])
 
     # output csv with centerline coordinates
     fname_centerline_csv = file_out + '.csv'

@@ -18,6 +18,7 @@
 
 import sys, os, shutil
 from math import asin, cos, sin, acos
+
 import numpy as np
 
 from scipy import ndimage
@@ -28,6 +29,20 @@ from msct_image import Image
 import sct_utils as sct
 from sct_convert import convert
 from sct_register_multimodal import Paramreg
+
+def polynomial_fit(x, y, degree):
+    """
+    Perform a polynomial fit on data
+    :param x, y: x,y
+    :param degree: polynomial degree
+    :return: y_fit and polynomial object (functor)
+    """
+
+    coeffs = np.polyfit(x, y, degree)
+    poly = np.poly1d(coeffs)
+    y_fit = np.polyval(poly, x)
+
+    return y_fit, poly
 
 
 def register_slicewise(fname_src,
@@ -173,7 +188,6 @@ def register2d_centermassrot(fname_src, fname_dest, fname_warp='warp_forward.nii
 
     # regularize rotation
     if not poly == 0 and rot == 1:
-        from msct_smooth import polynomial_fit
         angle_src_dest_regularized = polynomial_fit(z_nonzero, angle_src_dest[z_nonzero], poly)[0]
         # display
         if verbose == 2:

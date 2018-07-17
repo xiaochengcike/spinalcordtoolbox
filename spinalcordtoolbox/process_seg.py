@@ -222,8 +222,8 @@ def compute_length(fname_segmentation, remove_temp_files, output_folder, overwri
 def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fitting='hanning', type_window='hanning',
                        window_length=80, use_phys_coord=True, file_out='centerline'):
     """
-    Extract centerline from a binary or weighted segmentation by computing the center of mass. Outputs centerline
-    coordinates (as csv) and binary mask with one pixel per slice (nifti file).
+    Extract centerline from a binary or weighted segmentation by computing the center of mass. Create centerline
+    coordinates (.csv), image with one pixel per slice (.nii.gz) and JIM-compatible ROI file (.roi)
     :param fname_segmentation:
     :param remove_temp_files:
     :param verbose:
@@ -232,7 +232,7 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fi
     :param window_length:
     :param use_phys_coord: TODO: Explain the pros/cons of use_phys_coord.
     :param file_out:
-    :return:
+    :return: None
     """
     # TODO: no need for unecessary i/o. Everything could be done in RAM
     # Extract path, file and extension
@@ -269,13 +269,12 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fi
     fname_tmp_seg = os.path.join(path_tmp, 'fname_tmp_seg.nii.gz')
     im_seg.setFileName(fname_tmp_seg)
     im_seg.save()
-
-    # data = im_seg.data
+    data = im_seg.data
     # Save as
     # Get dimensions
     # nx, ny, nz, nt, px, py, pz, pt = im_seg.dim
-
-    # Extract min and max index in Z direction
+    #
+    # # Extract min and max index in Z direction
     # X, Y, Z = (data > 0).nonzero()
     # min_z_index, max_z_index = min(Z), max(Z)
     # x_centerline = [0 for i in range(0, max_z_index - min_z_index + 1)]
@@ -349,55 +348,47 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fi
 
     # Create an image with the centerline
     im_centerline = im_seg.copy()
-
+    data_centerline = im_centerline.data * 0
+    # Find z-boundaries above which and below which there is no non-null slices
     min_z_index, max_z_index = int(round(min(z_centerline_voxel))), int(round(max(z_centerline_voxel)))
+    # loop across slices and set centerline pixel to value=1
     for iz in range(min_z_index, max_z_index + 1):
-        data[int(round(x_centerline_voxel[iz - min_z_index])), int(round(y_centerline_voxel[iz - min_z_index])), int(
-            iz)] = 1  # if index is out of bounds here for hanning: either the segmentation has holes or labels have been added to the file
-    # Write the centerline image in RPI orientation
-    # hdr.set_data_dtype('uint8') # set imagetype to uint8
-    sct.printv('\nWrite NIFTI volumes...', verbose)
-    im_seg.data = data
-    im_seg.setFileName(file_out+'.nii.gz')
-    im_seg.changeType('uint8')
-    im_seg.save()
+        data_centerline[int(round(x_centerline_voxel[iz - min_z_index])),
+                        int(round(y_centerline_voxel[iz - min_z_index])),
+                        int(iz)] = 1
+    # assign data to centerline image
+    im_centerline.data = data_centerline
+    # reorient centerline to native orientation
+    im_centerline.change_orientation(native_orientation)
+    # save nifti volume
+    fname_centerline = file_out + '.nii.gz'
+    im_centerline.setFileName(fname_centerline)
+    im_centerline.changeType('uint8')
+    im_centerline.save()
+    # display stuff
+    sct.display_viewer_syntax([fname_segmentation, fname_centerline], colormaps=['greyscale', 'green'])
 
-    sct.printv('\nSet to original orientation...', verbose)
-    # get orientation of the input data
-    im_seg_original = Image('segmentation.nii.gz')
-    orientation = im_seg_original.orientation
-    sct.run(['sct_image', '-i', 'centerline_RPI.nii.gz', '-setorient', orientation, '-o', 'centerline.nii.gz'])
-
-    # create a txt file with the centerline
-    name_output_txt = 'centerline.txt'
-    sct.printv('\nWrite text file...', verbose)
-    file_results = open(name_output_txt, 'w')
+    # output csv with centerline coordinates
+    fname_centerline_csv = file_out + '.csv'
+    f_csv = open(fname_centerline_csv, 'w')
+    f_csv.write('x,y,z\n')  # csv header
     for i in range(min_z_index, max_z_index + 1):
-        file_results.write(str(int(i)) + ' ' + str(x_centerline_voxel[i - min_z_index]) + ' ' + str(
-            y_centerline_voxel[i - min_z_index]) + '\n')
-    file_results.close()
+        f_csv.write("%d,%d,%d\n" % (int(i),
+                                    x_centerline_voxel[i - min_z_index],
+                                    y_centerline_voxel[i - min_z_index]))
+    f_csv.close()
+    # TODO: display open syntax for csv
 
     # create a .roi file
-    # TODO: create a flag for it
-    fname_roi_centerline = optic.centerline2roi(fname_image='centerline_RPI.nii.gz',
+    fname_roi_centerline = optic.centerline2roi(fname_image=fname_centerline,
                                                 folder_output='./',
                                                 verbose=verbose)
-
-    # come back
-    os.chdir(curdir)
-
-    # Generate output files
-    sct.printv('\nGenerate output files...', verbose)
-    sct.generate_output_file(os.path.join(path_tmp, "centerline.nii.gz"), file_data + '_centerline.nii.gz')
-    sct.generate_output_file(os.path.join(path_tmp, "centerline.txt"), file_data + '_centerline.txt')
-    sct.generate_output_file(os.path.join(path_tmp, fname_roi_centerline), file_data + '_centerline.roi')
 
     # Remove temporary files
     if remove_temp_files:
         sct.printv('\nRemove temporary files...', verbose)
         sct.rmtree(path_tmp)
 
-    return file_data + '_centerline.nii.gz'
 
 
 # compute_csa

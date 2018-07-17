@@ -1,11 +1,11 @@
-import sys, io, os, shutil, datetime
-from string import Template
+#!/usr/bin/env python
+# -*- coding: utf-8
+# Functions dealing with centerline detection and manipulation
 
+import os, datetime
 import nibabel as nib
 import numpy as np
-
 import sct_utils as sct
-import sct_image
 from sct_image import orientation
 from msct_image import Image
 
@@ -153,9 +153,9 @@ def detect_centerline(image_fname, contrast_type,
     sct.copy(centerline_optic_filename, folder_output_from_temp)
 
     if output_roi:
-        fname_roi_centerline = centerline2roi(fname_image=centerline_optic_RPI_filename,
-                                              folder_output=folder_output_from_temp,
-                                              verbose=verbose)
+        centerline2roi(fname_image=centerline_optic_RPI_filename,
+                       folder_output=folder_output_from_temp,
+                       verbose=verbose)
 
         # Note: the .roi file is defined in RPI orientation. To be used, it must be applied on the original image with
         # a RPI orientation. For this reason, this script also outputs the input image in RPI orientation

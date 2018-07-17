@@ -49,7 +49,7 @@ def compute_shape(fname_segmentation, remove_temp_files, file_out='shape', overw
 
     # choose sorting mode: z-slice or vertebral levels, depending on input (fname_discs)
     rejected_values = []  # some values are not vertebral levels
-    if fname_discs is not None:
+    if fname_discs:
         # average over spinal cord levels
         sorting_mode = 'vertebral_level'
         rejected_values = [0, '0']

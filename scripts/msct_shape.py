@@ -118,65 +118,6 @@ def properties2d(image, resolution=None, verbose=1):
     return sc_properties
 
 
-def average_properties(fname_seg_images, property_list, fname_disks_images, group_images, verbose=1):
-    if len(fname_seg_images) != len(fname_disks_images):
-        raise ValueError('ERROR: each segmentation image must be accompagnied by a disk image')
-
-    # variables
-    xtick_disks = [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
-    regions_labels = {'-1': 'PONS', '0': 'MO',
-                      '1': 'C1', '2': 'C2', '3': 'C3', '4': 'C4', '5': 'C5', '6': 'C6', '7': 'C7',
-                      '8': 'T1', '9': 'T2', '10': 'T3', '11': 'T4', '12': 'T5', '13': 'T6', '14': 'T7', '15': 'T8', '16': 'T9', '17': 'T10', '18': 'T11', '19': 'T12',
-                      '20': 'L1', '21': 'L2', '22': 'L3', '23': 'L4', '24': 'L5',
-                      '25': 'S1', '26': 'S2', '27': 'S3', '28': 'S4', '29': 'S5',
-                      '30': 'Co'}
-    convert_vertlabel2disklabel = {'PONS': 'Pons', 'MO': 'Pons-MO',
-                          'C1': 'MO-C1', 'C2': 'C1-C2', 'C3': 'C2-C3', 'C4': 'C3-C4', 'C5': 'C4-C5', 'C6': 'C5-C6', 'C7': 'C6-C7',
-                          'T1': 'C7-T1', 'T2': 'T1-T2', 'T3': 'T2-T3', 'T4': 'T3-T4', 'T5': 'T4-T5', 'T6': 'T5-T6', 'T7': 'T6-T7', 'T8': 'T7-T8', 'T9': 'T8-T9',
-                          'T10': 'T9-T10', 'T11': 'T10-T11', 'T12': 'T11-T12',
-                          'L1': 'T12-L1', 'L2': 'L1-L2', 'L3': 'L2-L3', 'L4': 'L3-L4', 'L5': 'L4-L5',
-                          'S1': 'L5-S1', 'S2': 'S1-S2', 'S3': 'S2-S3', 'S4': 'S3-S4', 'S5': 'S4-S5',
-                          'Co': 'S5-Co'}
-    xlabel_disks = [convert_vertlabel2disklabel[regions_labels[str(label)]] for label in xtick_disks]
-
-    if verbose == 2:
-        # Display the image and plot all contours found
-        fig, axes = plt.subplots(len(property_list), sharex=True, sharey=False)
-
-        xlim = [min(xtick_disks), max(xtick_disks)]
-
-    for i, fname_seg in enumerate(fname_seg_images):
-        sct.printv(fname_seg)
-        fname_disks = fname_disks_images[i]
-        properties_along_centerline = compute_properties_along_centerline(fname_seg, property_list, fname_disks, verbose)
-
-        centerline = properties_along_centerline['centerline']
-
-        mask_points = np.array([True if isinstance(item, str) else False for item in centerline.l_points])
-        dist_points_rel = list(compress(centerline.dist_points_rel, mask_points))
-        l_points = list(compress(centerline.l_points, mask_points))
-
-        relative_position = [dist_points_rel[k] + centerline.labels_regions[l_points[k]] for k in range(len(l_points))]
-        relative_position = [item - 51 if item >= 51 else item for item in relative_position]
-        relative_position = [item - 50 if item >= 50 else item for item in relative_position]
-
-        if verbose == 2:
-            labels = [centerline.labels_regions[l_points[k]] for k in range(len(l_points))]
-            xlim = [min(labels), max(labels)]
-            for k, property_name in enumerate(property_list):
-                axes[k].plot(relative_position, list(compress(properties_along_centerline[property_name], mask_points)), color=group_images[i])
-                axes[k].set_xlim(xlim)
-
-    if verbose == 2:
-        for k, property_name in enumerate(property_list):
-            axes[k].set_ylabel(property_name)
-        plt.xticks(xtick_disks, xlabel_disks, rotation=30)
-        axes[-1].set_xlim(xlim)
-        sct.printv('\nAffichage des resultats', verbose=verbose)
-        plt.savefig('shape_results.png')
-        plt.show()
-
-
 def compute_properties_along_centerline(fname_seg_image, property_list, fname_disks_image=None, smooth_factor=5.0, interpolation_mode=0, remove_temp_files=1, verbose=1):
 
     # Check list of properties

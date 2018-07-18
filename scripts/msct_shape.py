@@ -228,7 +228,9 @@ def compute_properties_along_centerline(fname_seg_image, property_list, fname_di
             pbar.update(1)
 
     # Adding centerline to the properties for later use
-    properties['centerline'] = centerline
+    # UPDATE JULIEN: removed the line below because this property has different type than other properties (Centerline
+    # vs. array), causing troubles later in the code. Would be better to export it in a different way.
+    # properties['centerline'] = centerline
 
     # We assume that the major axis is in the right-left direction
     # this script checks the orientation of the spinal cord and invert axis if necessary to make sure the major axis is right-left

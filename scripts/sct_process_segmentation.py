@@ -183,7 +183,7 @@ def main(args):
     fname_segmentation = arguments['-i']
     name_process = arguments['-p']
     overwrite = 0
-    fname_vertebral_labeling = ''
+    fname_vert_levels = ''
     if '-o' in arguments:
         file_out = os.path.abspath(arguments['-o'])
     else:
@@ -193,13 +193,13 @@ def main(args):
     if '-overwrite' in arguments:
         overwrite = arguments['-overwrite']
     if '-vert' in arguments:
-        vert_lev = arguments['-vert']
+        vert_levels = arguments['-vert']
     else:
-        vert_lev = ''
+        vert_levels = ''
     if '-r' in arguments:
         remove_temp_files = arguments['-r']
     if '-vertfile' in arguments:
-        fname_vertebral_labeling = arguments['-vertfile']
+        fname_vert_levels = arguments['-vertfile']
     if '-perlevel' in arguments:
         perlevel = arguments['-perlevel']
     else:
@@ -238,8 +238,8 @@ def main(args):
     if name_process == 'csa':
         if not file_out:
             file_out = 'csa'
-        process_seg.compute_csa(fname_segmentation, overwrite, verbose, remove_temp_files, slices, vert_lev,
-                                fname_vertebral_labeling, perslice=perslice, perlevel=perlevel,
+        process_seg.compute_csa(fname_segmentation, overwrite, verbose, remove_temp_files, slices, vert_levels,
+                                fname_vert_levels, perslice=perslice, perlevel=perlevel,
                                 algo_fitting=param.algo_fitting, type_window=param.type_window,
                                 window_length=param.window_length, angle_correction=angle_correction,
                                 use_phys_coord=use_phys_coord, file_out=file_out)
@@ -253,16 +253,18 @@ def main(args):
 
     if name_process == 'length':
         process_seg.compute_length(fname_segmentation, remove_temp_files, output_folder, overwrite, slices,
-                                   vert_lev, fname_vertebral_labeling, verbose=verbose)
+                                   vert_levels, fname_vert_levels, verbose=verbose)
 
     if name_process == 'shape':
         if not file_out:
             file_out = 'shape'
-        fname_disks = None
+        fname_discs = None
         if '-discfile' in arguments:
             fname_discs = arguments['-discfile']
-        process_seg.compute_shape(fname_segmentation, remove_temp_files, file_out=file_out, overwrite=0,
-                                  fname_discs=fname_discs, verbose=verbose)
+        process_seg.compute_shape(fname_segmentation, slices=slices, vert_levels=vert_levels,
+                                  fname_vert_levels=fname_vert_levels, perslice=perslice, perlevel=perlevel,
+                                  file_out=file_out, overwrite=overwrite, fname_discs=fname_discs,
+                                  remove_temp_files=remove_temp_files, verbose=verbose)
 
 
 if __name__ == "__main__":

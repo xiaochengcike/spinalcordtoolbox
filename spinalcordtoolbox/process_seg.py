@@ -20,15 +20,14 @@ OUTPUT_CSA_VOLUME = 0
 OUTPUT_ANGLE_VOLUME = 0
 
 
-def compute_shape(fname_segmentation, remove_temp_files, file_out='shape', overwrite=0,
-                  fname_discs=None, verbose=1):
+def compute_shape(fname_segmentation, slices='', vert_levels='', fname_vert_levels='', perslice=0, perlevel=0,
+                  file_out='shape', overwrite=0, fname_discs=None, remove_temp_files=1, verbose=1):
     """
     This function characterizes the shape of the spinal cord, based on the segmentation
     Shape properties are computed along the spinal cord and averaged per z-slices.
     Option is to provide intervertebral disks to average shape properties over vertebral levels (fname_discs).
     """
     # TODO: deal with overwrite, slices, etc.
-    # TODO: check if shape is corrected for cord curvature
     # List of properties to compute on spinal cord
     property_list = ['area',
                      'diameters',
@@ -54,58 +53,53 @@ def compute_shape(fname_segmentation, remove_temp_files, file_out='shape', overw
         if not value == []:
             headers.append(key)
             metrics.append(np.array(value))
-    slices = ''
-    perslice = 1
-    vert_levels = 0
-    perlevel = 0
-    fname_vert_levels = ''
 
     # TODO: average per slice (due to the centerline oversampling) before running the code below
     average_per_slice_or_level(metrics, header=headers,
                                slices=slices, perslice=perslice, vert_levels=vert_levels, perlevel=perlevel,
                                fname_vert_levels=fname_vert_levels, file_out=file_out, overwrite=overwrite)
-
-
-    fname_output_csv = file_out + '.csv'
-
-    # choose sorting mode: z-slice or vertebral levels, depending on input (fname_discs)
-    rejected_values = []  # some values are not vertebral levels
-    if fname_discs:
-        # average over spinal cord levels
-        sorting_mode = 'vertebral_level'
-        rejected_values = [0, '0']
-        # if vert_levels != '':
-
-    else:
-        # averaging over slices
-        sorting_mode = 'z_slice'
-
-    # extract all values for shape properties to be averaged on (z-slices or vertebral levels)
-    sorting_values = []
-    for label in shape_properties[sorting_mode]:
-        if label not in sorting_values and label not in rejected_values:
-            sorting_values.append(label)
-
-    # average spinal cord shape properties
-    averaged_shape = dict()
-    for property_name in property_list:
-        averaged_shape[property_name] = []
-        for label in sorting_values:
-            averaged_shape[property_name].append(np.mean(
-                [item for i, item in enumerate(shape_properties[property_name]) if
-                 shape_properties[sorting_mode][i] == label]))
-
-    # save spinal cord shape properties
-    df_shape_properties = pd.DataFrame(averaged_shape, index=sorting_values)
-    df_shape_properties.sort_index(inplace=True)
-    pd.set_option('expand_frame_repr', True)
-    df_shape_properties.to_csv(fname_output_csv, sep=',')
-
-    if verbose == 1:
-        sct.printv(df_shape_properties)
-
-    # display info
-    sct.printv('\nDone! Results are save in the file: ' + fname_output_csv, verbose, 'info')
+    #
+    #
+    # fname_output_csv = file_out + '.csv'
+    #
+    # # choose sorting mode: z-slice or vertebral levels, depending on input (fname_discs)
+    # rejected_values = []  # some values are not vertebral levels
+    # if fname_discs:
+    #     # average over spinal cord levels
+    #     sorting_mode = 'vertebral_level'
+    #     rejected_values = [0, '0']
+    #     # if vert_levels != '':
+    #
+    # else:
+    #     # averaging over slices
+    #     sorting_mode = 'z_slice'
+    #
+    # # extract all values for shape properties to be averaged on (z-slices or vertebral levels)
+    # sorting_values = []
+    # for label in shape_properties[sorting_mode]:
+    #     if label not in sorting_values and label not in rejected_values:
+    #         sorting_values.append(label)
+    #
+    # # average spinal cord shape properties
+    # averaged_shape = dict()
+    # for property_name in property_list:
+    #     averaged_shape[property_name] = []
+    #     for label in sorting_values:
+    #         averaged_shape[property_name].append(np.mean(
+    #             [item for i, item in enumerate(shape_properties[property_name]) if
+    #              shape_properties[sorting_mode][i] == label]))
+    #
+    # # save spinal cord shape properties
+    # df_shape_properties = pd.DataFrame(averaged_shape, index=sorting_values)
+    # df_shape_properties.sort_index(inplace=True)
+    # pd.set_option('expand_frame_repr', True)
+    # df_shape_properties.to_csv(fname_output_csv, sep=',')
+    #
+    # if verbose == 1:
+    #     sct.printv(df_shape_properties)
+    #
+    # # display info
+    # sct.printv('\nDone! Results are save in the file: ' + fname_output_csv, verbose, 'info')
 
 
 def compute_length(fname_segmentation, remove_temp_files, output_folder, overwrite, slices, vert_levels,

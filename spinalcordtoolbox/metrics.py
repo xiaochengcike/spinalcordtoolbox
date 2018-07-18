@@ -15,7 +15,8 @@ from spinalcordtoolbox.template import get_slices_from_vertebral_levels
 from spinalcordtoolbox.centerline import optic
 
 
-def average_per_slice_or_level(metrics, header="", slices=[], perslice=1, vert_levels=[], perlevel=0, fname_vert_levels="", file_out="metrics", overwrite=1):
+def average_per_slice_or_level(metrics, header='', slices='', perslice=1, vert_levels='', perlevel=0,
+                               fname_vert_levels='', file_out='metrics', overwrite=1):
 
     # TODO: check last dimension is S-I
     nz = len(metrics[0])  # retrieve number of slices from the first metric (assuming they all have the same shape)
@@ -80,3 +81,4 @@ def average_per_slice_or_level(metrics, header="", slices=[], perslice=1, vert_l
             sct.printv('The slice(s) requested is out of the range of the image', type='warning')
     file_results.close()
     # TODO: printout csv
+    # TODO: return dict or panda structure instead of writing csv file

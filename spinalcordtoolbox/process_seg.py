@@ -46,6 +46,26 @@ def compute_shape(fname_segmentation, remove_temp_files, file_out='shape', overw
                                                                                      remove_temp_files=remove_temp_files,
                                                                                      verbose=verbose)
 
+    # TODO: when switching to Python3, replace iteritems() by items()
+    headers = []
+    metrics = []
+    for key, value in shape_properties.iteritems():
+        # Making sure all entries added to metrics have results
+        if not value == []:
+            headers.append(key)
+            metrics.append(np.array(value))
+    slices = ''
+    perslice = 1
+    vert_levels = 0
+    perlevel = 0
+    fname_vert_levels = ''
+
+    # TODO: average per slice (due to the centerline oversampling) before running the code below
+    average_per_slice_or_level(metrics, header=headers,
+                               slices=slices, perslice=perslice, vert_levels=vert_levels, perlevel=perlevel,
+                               fname_vert_levels=fname_vert_levels, file_out=file_out, overwrite=overwrite)
+
+
     fname_output_csv = file_out + '.csv'
 
     # choose sorting mode: z-slice or vertebral levels, depending on input (fname_discs)
@@ -525,7 +545,6 @@ def compute_csa(fname_segmentation, overwrite, verbose, remove_temp_files, slice
     # come back to native directory
     os.chdir(curdir)
     #
-    # TODO: make sure angle has same shape as csa
     average_per_slice_or_level([csa, angles], header=['CSA [mm^2]','Angle between cord and S-I direction [deg]'],
                                slices=slices, perslice=perslice, vert_levels=vert_levels, perlevel=perlevel,
                                fname_vert_levels=fname_vertebral_labeling, file_out=file_out, overwrite=overwrite)

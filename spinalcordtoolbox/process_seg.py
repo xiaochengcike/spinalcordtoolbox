@@ -17,20 +17,17 @@ OUTPUT_CSA_VOLUME = 0
 OUTPUT_ANGLE_VOLUME = 0
 
 
-def compute_shape(fname_segmentation, slices='', vert_levels='', fname_vert_levels='', perslice=0, perlevel=0,
-                  file_out='shape', overwrite=0, remove_temp_files=1, verbose=1):
+def compute_shape(im_seg, remove_temp_files=1, verbose=1):
     """
     This function characterizes the shape of the spinal cord, based on the segmentation
     Shape properties are computed along the spinal cord and averaged per z-slices.
     Option is to provide intervertebral disks to average shape properties over vertebral levels (fname_discs).
     """
-
-    shape_properties = msct_shape.compute_properties_along_centerline(fname_seg_image=fname_segmentation,
+    shape_properties = msct_shape.compute_properties_along_centerline(im_seg=im_seg,
                                                                       smooth_factor=0.0,
                                                                       interpolation_mode=0,
                                                                       remove_temp_files=remove_temp_files,
                                                                       verbose=verbose)
-
     # TODO: when switching to Python3, replace iteritems() by items()
     headers = []
     metrics = []
@@ -39,8 +36,17 @@ def compute_shape(fname_segmentation, slices='', vert_levels='', fname_vert_leve
         if not value == []:
             headers.append(key)
             metrics.append(np.array(value))
+    return metrics, headers
 
-    # TODO: average per slice (due to the centerline oversampling) before running the code below
+
+def compute_shape_from_file(fname_segmentation, slices='', vert_levels='', fname_vert_levels='', perslice=0, perlevel=0,
+                  file_out='shape', overwrite=0, remove_temp_files=1, verbose=1):
+    """
+    This function is a wrapper for compute_shape()
+    """
+    im_seg = Image(fname_segmentation)
+    metrics, headers = compute_shape(im_seg, remove_temp_files=1, verbose=1)
+    # write output file
     average_per_slice_or_level(metrics, header=headers,
                                slices=slices, perslice=perslice, vert_levels=vert_levels, perlevel=perlevel,
                                fname_vert_levels=fname_vert_levels, file_out=file_out, overwrite=overwrite)

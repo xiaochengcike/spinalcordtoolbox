@@ -60,24 +60,23 @@ def dummy_segmentation():
 # noinspection 801,PyShadowingNames
 def test_compute_shape(dummy_segmentation):
     """Test computation of cross-sectional area from input segmentation"""
-    process_seg.compute_shape(dummy_segmentation, slices='', vert_levels='', fname_vert_levels='', perslice=0,
-                              perlevel=0, file_out='shape', overwrite=0, fname_discs=None, remove_temp_files=1,
-                              verbose=1)
+    process_seg.compute_shape_from_file(dummy_segmentation, slices='', vert_levels='', fname_vert_levels='', perslice=0,
+                                        perlevel=0, file_out='shape', overwrite=0, remove_temp_files=1, verbose=1)
     # open created csv file
     with open('shape.csv', 'rb') as f:
         reader = csv.reader(f)
         reader.next()  # skip header
-        AP_diameter, symmetry, area, ratio_minor_major, solidity,  RL_diameter, equivalent_diameter, eccentricity, \
-        orientation = [float(i) for i in reader.next()[2:]]
-    assert AP_diameter == pytest.approx(6.19, 1e-3)
-    assert symmetry == pytest.approx(0.97, 0.01)
-    assert area == pytest.approx(28.96, 0.01)
-    assert ratio_minor_major == pytest.approx(0.99, 0.01)
-    assert solidity == pytest.approx(0.83, 0.01)
-    assert RL_diameter == pytest.approx(6.21, 0.01)
-    assert equivalent_diameter == pytest.approx(6.07, 0.01)
-    assert eccentricity == pytest.approx(0.00868, 1e-3)
+        area, equivalent_diameter, AP_diameter, RL_diameter, ratio_minor_major, eccentricity, solidity, orientation, \
+        symmetry = [float(i) for i in reader.next()[2:]]
+    assert area == pytest.approx(28.96, abs=1e-3)
+    assert equivalent_diameter == pytest.approx(6.072, abs=1e-3)
+    assert AP_diameter == pytest.approx(6.195, abs=1e-3)
+    assert RL_diameter == pytest.approx(6.208, abs=1e-3)
+    assert ratio_minor_major == pytest.approx(0.998, abs=1e-3)
+    assert eccentricity == pytest.approx(0.00867, abs=1e-5)
+    assert solidity == pytest.approx(0.829, abs=1e-3)
     assert orientation == 45
+    assert symmetry == pytest.approx(0.977, abs=1e-3)
 
     # TODO: continue integrity testing
     # TODO: test on an ellipsoid image, because the orientation field does not make any sense on a cylindrical image

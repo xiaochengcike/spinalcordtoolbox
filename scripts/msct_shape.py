@@ -130,10 +130,20 @@ def assign_AP_and_RL_diameter(properties):
     return properties
 
 
-def compute_properties_along_centerline(fname_seg_image, smooth_factor=5.0, interpolation_mode=0, remove_temp_files=1, verbose=1):
+def compute_properties_along_centerline(im_seg, smooth_factor=5.0, interpolation_mode=0, remove_temp_files=1,
+                                        verbose=1):
+    """
+    Compute shape property along spinal cord centerline. This algorithm estimates the centerline using NURBS,
+    oversample it, extract 2D patch orthogonal to the centerline, compute the shape on the 2D patches, and finally
+    undersample the shape information in order to match the input slice #.
+    :param im_seg:
+    :param smooth_factor:
+    :param interpolation_mode:
+    :param remove_temp_files:
+    :param verbose:
+    :return:
+    """
 
-    # TODO: set order of list at the beginning
-    # TODO: deal with overwrite, slices, etc.
     # List of properties to output (in the right order)
     property_list = ['area',
                      'equivalent_diameter',
@@ -152,13 +162,13 @@ def compute_properties_along_centerline(fname_seg_image, smooth_factor=5.0, inte
     curdir = os.getcwd()
     os.chdir(path_tmp)
 
-    fname_segmentation = os.path.abspath(fname_seg_image)
-    path_data, file_data, ext_data = sct.extract_fname(fname_segmentation)
+    # fname_segmentation = os.path.abspath(fname_seg_image)
+    # path_data, file_data, ext_data = sct.extract_fname(fname_segmentation)
 
     # Change orientation of the input centerline into RPI
     sct.printv('\nOrient centerline to RPI orientation...', verbose)
-    im_seg = Image(file_data + ext_data)
-    fname_segmentation_orient = 'segmentation_rpi' + ext_data
+    # im_seg = Image(file_data + ext_data)
+    fname_segmentation_orient = 'segmentation_rpi.nii.gz'
     image = set_orientation(im_seg, 'RPI')
     image.setFileName(fname_segmentation_orient)
     image.save()

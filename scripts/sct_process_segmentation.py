@@ -238,11 +238,12 @@ def main(args):
     if name_process == 'csa':
         if not file_out:
             file_out = 'csa'
-        process_seg.compute_csa(fname_segmentation, overwrite, verbose, remove_temp_files, slices, vert_levels,
-                                fname_vert_levels, perslice=perslice, perlevel=perlevel,
-                                algo_fitting=param.algo_fitting, type_window=param.type_window,
-                                window_length=param.window_length, angle_correction=angle_correction,
-                                use_phys_coord=use_phys_coord, file_out=file_out)
+        process_seg.compute_csa_from_file(fname_segmentation, overwrite, verbose, remove_temp_files, slices,
+                                          vert_levels, fname_vert_levels=fname_vert_levels, perslice=perslice,
+                                          perlevel=perlevel, algo_fitting=param.algo_fitting,
+                                          type_window=param.type_window, window_length=param.window_length,
+                                          angle_correction=angle_correction, use_phys_coord=use_phys_coord,
+                                          file_out=file_out)
 
     if name_process == 'label-vert':
         if '-discfile' in arguments:
@@ -261,10 +262,10 @@ def main(args):
         fname_discs = None
         if '-discfile' in arguments:
             fname_discs = arguments['-discfile']
-        process_seg.compute_shape(fname_segmentation, slices=slices, vert_levels=vert_levels,
-                                  fname_vert_levels=fname_vert_levels, perslice=perslice, perlevel=perlevel,
-                                  file_out=file_out, overwrite=overwrite, fname_discs=fname_discs,
-                                  remove_temp_files=remove_temp_files, verbose=verbose)
+        process_seg.compute_shape_from_file(fname_segmentation, slices=slices, vert_levels=vert_levels,
+                                            fname_vert_levels=fname_vert_levels, perslice=perslice, perlevel=perlevel,
+                                            file_out=file_out, overwrite=overwrite, fname_discs=fname_discs,
+                                            remove_temp_files=remove_temp_files, verbose=verbose)
 
 
 if __name__ == "__main__":

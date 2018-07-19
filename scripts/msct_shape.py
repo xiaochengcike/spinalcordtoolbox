@@ -17,16 +17,12 @@
 import numpy as np
 import sct_utils as sct
 import os
-import time
 import math
-from random import randint
 from collections import OrderedDict
 import tqdm
 from scipy.ndimage import map_coordinates
 from skimage import measure, filters
-import shutil
 import matplotlib.pyplot as plt
-from itertools import compress
 from sct_image import Image, set_orientation
 from msct_types import Centerline
 from sct_straighten_spinalcord import smooth_centerline

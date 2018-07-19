@@ -329,12 +329,7 @@ def compute_csa(im_seg, verbose, remove_temp_files, algo_fitting='hanning', type
     :param use_phys_coord:
     :return:
     """
-    # TODO: do everything in RAM instead of adding unecessary i/o
-
-    # # # Extract path, file and extension
-    # # fname_segmentation = os.path.abspath(fname_segmentation)
-    # # # path_data, file_data, ext_data = sct.extract_fname(fname_segmentation)
-    # #
+    # TODO: do everything in RAM instead of adding unecessary i/o. For that we need a wrapper for smooth_centerline()
     # create temporary folder
     path_tmp = sct.tmp_create()
     # change orientation to RPI
@@ -343,28 +338,6 @@ def compute_csa(im_seg, verbose, remove_temp_files, algo_fitting='hanning', type
     fname_seg = os.path.join(path_tmp, 'segmentation_RPI.nii.gz')
     im_seg.setFileName(fname_seg)
     im_seg.save()
-
-    # #
-    # # # Copying input data to tmp folder
-    # # sct.printv('\nCopying input data to tmp folder and convert to nii...', verbose)
-    # # sct.run(['sct_convert', '-i', fname_segmentation, '-o', os.path.join(path_tmp, "segmentation.nii.gz")], verbose)
-    # # # go to tmp folder
-    # # curdir = os.getcwd()
-    # # os.chdir(path_tmp)
-    # # # Change orientation of the input segmentation into RPI
-    # # sct.printv('\nChange orientation to RPI...', verbose)
-    # # sct.run(['sct_image', '-i', 'segmentation.nii.gz', '-setorient', 'RPI', '-o', 'segmentation_RPI.nii.gz'], verbose)
-    # #
-    # # # Open segmentation volume
-    # # sct.printv('\nOpen segmentation volume...', verbose)
-    # # im_seg = Image('segmentation_RPI.nii.gz')
-    # # data_seg = im_seg.data
-    # # # hdr_seg = im_seg.hdr
-    #
-    # # Get size of data
-    # sct.printv('\nGet data dimensions...', verbose)
-    # nx, ny, nz, nt, px, py, pz, pt = im_seg.dim
-    # sct.printv('  ' + str(nx) + ' x ' + str(ny) + ' x ' + str(nz), verbose)
 
     # # Extract min and max index in Z direction
     data_seg = im_seg.data
@@ -408,9 +381,6 @@ def compute_csa(im_seg, verbose, remove_temp_files, algo_fitting='hanning', type
             x_centerline_deriv * px, y_centerline_deriv * py, z_centerline_deriv * pz
 
         axis_Z = [0.0, 0.0, 1.0]
-
-        # compute z_centerline in image coordinates for usage in vertebrae mapping
-        z_centerline_voxel = z_centerline
 
     # Compute CSA
     sct.printv('\nCompute CSA...', verbose)
@@ -548,8 +518,9 @@ def compute_csa_from_file(fname_segmentation, overwrite, verbose, remove_temp_fi
     :return:
     """
     im_seg = Image(fname_segmentation)
-    metrics, headers = compute_csa(im_seg, verbose, remove_temp_files, algo_fitting='hanning', type_window='hanning',
-                                   window_length=80, angle_correction=True, use_phys_coord=True)
+    metrics, headers = compute_csa(im_seg, verbose, remove_temp_files, algo_fitting=algo_fitting,
+                                   type_window=type_window, window_length=window_length,
+                                   angle_correction=angle_correction, use_phys_coord=use_phys_coord)
 
     # write output file
     average_per_slice_or_level(metrics, header=headers,

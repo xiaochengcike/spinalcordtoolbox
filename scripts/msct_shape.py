@@ -20,7 +20,7 @@ import os
 import time
 import math
 from random import randint
-
+from collections import OrderedDict
 import tqdm
 from skimage import measure, filters
 import shutil
@@ -122,6 +122,9 @@ def compute_properties_along_centerline(fname_seg_image, property_list, fname_di
 
     # Check list of properties
     # If diameters is in the list, compute major and minor axis length and check orientation
+    # TODO: always compute diameter (to simplify code)
+    # TODO: set order of list at the beginning
+    # TODO: no need to input property_list. Let's just output everything (for now)
     compute_diameters = False
     property_list_local = list(property_list)
     if 'diameters' in property_list_local:
@@ -197,10 +200,10 @@ def compute_properties_along_centerline(fname_seg_image, property_list, fname_di
         for index in range(centerline.number_of_points):
             # value_out = -5.0
             value_out = 0.0
-            current_patch = centerline.extract_perpendicular_square(image, index, resolution=resolution, interpolation_mode=interpolation_mode, border='constant', cval=value_out)
+            current_patch = centerline.extract_perpendicular_square(image, index, resolution=resolution,
+                                                                    interpolation_mode=interpolation_mode, border='constant', cval=value_out)
 
             # check for pixels close to the spinal cord segmentation that are out of the image
-            from skimage.morphology import dilation
             patch_zero = np.copy(current_patch)
             patch_zero[patch_zero == value_out] = 0.0
             # patch_borders = dilation(patch_zero) - patch_zero
@@ -252,6 +255,7 @@ def compute_properties_along_centerline(fname_seg_image, property_list, fname_di
         del properties['minor_axis_length']
 
     # smooth the spinal cord shape with a gaussian kernel if required
+    # TODO: remove this smoothing
     # TODO: not all properties can be smoothed
     if smooth_factor != 0.0:  # smooth_factor is in mm
         import scipy
@@ -288,12 +292,27 @@ def compute_properties_along_centerline(fname_seg_image, property_list, fname_di
 
         plt.show()
 
+    # extract all values for shape properties to be averaged across the oversampled centerline in order to match the
+    # input slice #
+    sorting_values = []
+    for label in properties['z_slice']:
+        if label not in sorting_values:
+            sorting_values.append(label)
+    # average spinal cord shape properties
+    averaged_shape = OrderedDict()
+    for property_name in property_list:
+        averaged_shape[property_name] = []
+        for label in sorting_values:
+            averaged_shape[property_name].append(np.mean(
+                [item for i, item in enumerate(properties[property_name]) if
+                 properties['z_slice'][i] == label]))
+
     # Removing temporary folder
     os.chdir(curdir)
     if remove_temp_files:
         sct.rmtree(path_tmp)
 
-    return property_list, properties
+    return property_list, averaged_shape
 
 
 """

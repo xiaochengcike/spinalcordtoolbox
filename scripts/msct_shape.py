@@ -32,7 +32,7 @@ def smoothing(image, sigma=1.0):
     return filters.gaussian(image, sigma=sigma)
 
 
-def properties2d(image, resolution=None, verbose=1):
+def properties2d(image, resolution=None):
     label_img = measure.label(np.transpose(image))
     regions = measure.regionprops(label_img)
     areas = [r.area for r in regions]

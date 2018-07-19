@@ -558,79 +558,11 @@ def label_vert(fname_seg, fname_label, fname_out='', verbose=1):
     label_segmentation(fname_seg, list_disc_z, list_disc_value, fname_out=fname_out, verbose=verbose)
 
 
-# =======================================================================================================================
-# Normalization
-# =======================================================================================================================
 def normalize(vect):
+    """
+    Normalize vector by its L2 norm
+    :param vect:
+    :return:
+    """
     norm = np.linalg.norm(vect)
     return vect / norm
-
-
-# =======================================================================================================================
-# Ellipse fitting for a set of data
-# =======================================================================================================================
-# http://nicky.vanforeest.com/misc/fitEllipse/fitEllipse.html
-def Ellipse_fit(x, y):
-    x = x[:, np.newaxis]
-    y = y[:, np.newaxis]
-    D = np.hstack((x * x, x * y, y * y, x, y, np.ones_like(x)))
-    S = np.dot(D.T, D)
-    C = np.zeros([6, 6])
-    C[0, 2] = C[2, 0] = 2
-    C[1, 1] = -1
-    E, V = np.linalg.eig(np.dot(np.linalg.inv(S), C))
-    n = np.argmax(np.abs(E))
-    a = V[:, n]
-    return a
-
-
-# =======================================================================================================================
-# Getting a and b parameter for fitted ellipse
-# =======================================================================================================================
-def ellipse_dim(a):
-    b, c, d, f, g, a = a[1] / 2, a[2], a[3] / 2, a[4] / 2, a[5], a[0]
-    up = 2 * (a * f * f + c * d * d + g * b * b - 2 * b * d * f - a * c * g)
-    down1 = (b * b - a * c) * ((c - a) * np.sqrt(1 + 4 * b * b / ((a - c) * (a - c))) - (c + a))
-    down2 = (b * b - a * c) * ((a - c) * np.sqrt(1 + 4 * b * b / ((a - c) * (a - c))) - (c + a))
-    res1 = np.sqrt(up / down1)
-    res2 = np.sqrt(up / down2)
-    return np.array([res1, res2])
-
-
-# =======================================================================================================================
-# Detect edges of an image
-# =======================================================================================================================
-def edge_detection(f):
-    img = Image.open(f)  # grayscale
-    imgdata = np.array(img, dtype=float)
-    G = imgdata
-    # G = ndi.filters.gaussian_filter(imgdata, sigma)
-    gradx = np.array(G, dtype=float)
-    grady = np.array(G, dtype=float)
-
-    mask_x = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
-
-    mask_y = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]])
-
-    width = img.size[1]
-    height = img.size[0]
-
-    for i in range(1, width - 1):
-        for j in range(1, height - 1):
-            px = np.sum(mask_x * G[(i - 1):(i + 1) + 1, (j - 1):(j + 1) + 1])
-            py = np.sum(mask_y * G[(i - 1):(i + 1) + 1, (j - 1):(j + 1) + 1])
-            gradx[i][j] = px
-            grady[i][j] = py
-
-    mag = scipy.hypot(gradx, grady)
-
-    treshold = np.max(mag) * 0.9
-
-    for i in range(width):
-        for j in range(height):
-            if mag[i][j] > treshold:
-                mag[i][j] = 1
-            else:
-                mag[i][j] = 0
-
-    return mag

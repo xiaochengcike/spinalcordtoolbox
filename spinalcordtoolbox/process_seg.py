@@ -40,19 +40,6 @@ def compute_shape(im_seg, remove_temp_files=1, verbose=1):
     return metrics, headers
 
 
-def compute_shape_from_file(fname_segmentation, slices='', vert_levels='', fname_vert_levels='', perslice=0, perlevel=0,
-                  file_out='shape', overwrite=0, remove_temp_files=1, verbose=1):
-    """
-    This function is a wrapper for compute_shape()
-    """
-    im_seg = Image(fname_segmentation)
-    metrics, headers = compute_shape(im_seg, remove_temp_files=1, verbose=1)
-    # write output file
-    average_per_slice_or_level(metrics, header=headers,
-                               slices=slices, perslice=perslice, vert_levels=vert_levels, perlevel=perlevel,
-                               fname_vert_levels=fname_vert_levels, file_out=file_out, overwrite=overwrite)
-
-
 def compute_length(fname_segmentation, remove_temp_files, output_folder, overwrite, slices, vert_levels,
                    fname_vertebral_labeling='', verbose=0):
     from math import sqrt
@@ -180,6 +167,230 @@ def compute_length(fname_segmentation, remove_temp_files, output_folder, overwri
         sct.rmtree(path_tmp)
 
     return length
+
+
+def compute_shape_from_file(fname_segmentation, slices='', vert_levels='', fname_vert_levels='', perslice=0, perlevel=0,
+                  file_out='shape', overwrite=0, remove_temp_files=1, verbose=1):
+    """
+    This function is a wrapper for compute_shape()
+    """
+    im_seg = Image(fname_segmentation)
+    metrics, headers = compute_shape(im_seg, remove_temp_files=1, verbose=1)
+    # write output file
+    average_per_slice_or_level(metrics, header=headers,
+                               slices=slices, perslice=perslice, vert_levels=vert_levels, perlevel=perlevel,
+                               fname_vert_levels=fname_vert_levels, file_out=file_out, overwrite=overwrite)
+
+
+def compute_csa(im_seg, verbose, remove_temp_files, algo_fitting='hanning', type_window='hanning', window_length=80,
+                angle_correction=True, use_phys_coord=True):
+    """
+    Compute CSA.
+    Note: segmentation can be binary or weighted for partial volume effect.
+    :param im_seg:
+    :param verbose:
+    :param remove_temp_files:
+    :param algo_fitting:
+    :param type_window:
+    :param window_length:
+    :param angle_correction:
+    :param use_phys_coord:
+    :return:
+    """
+    # TODO: do everything in RAM instead of adding unecessary i/o. For that we need a wrapper for smooth_centerline()
+    # create temporary folder
+    path_tmp = sct.tmp_create()
+    # change orientation to RPI
+    im_seg.change_orientation('RPI')
+    nx, ny, nz, nt, px, py, pz, pt = im_seg.dim
+    fname_seg = os.path.join(path_tmp, 'segmentation_RPI.nii.gz')
+    im_seg.setFileName(fname_seg)
+    im_seg.save()
+
+    # # Extract min and max index in Z direction
+    data_seg = im_seg.data
+    X, Y, Z = (data_seg > 0).nonzero()
+    min_z_index, max_z_index = min(Z), max(Z)
+
+    # if angle correction is required, get segmentation centerline
+    # Note: even if angle_correction=0, we should run the code below so that z_centerline_voxel is defined (later used
+    # with option -vert). See #1791
+    if use_phys_coord:
+        # fit centerline, smooth it and return the first derivative (in physical space)
+        x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv = \
+            smooth_centerline(fname_seg, algo_fitting=algo_fitting, type_window=type_window,
+                              window_length=window_length, nurbs_pts_number=3000, phys_coordinates=True,
+                              verbose=verbose, all_slices=False)
+        centerline = Centerline(x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv,
+                                y_centerline_deriv, z_centerline_deriv)
+
+        # average centerline coordinates over slices of the image
+        x_centerline_fit_rescorr, y_centerline_fit_rescorr, z_centerline_rescorr, x_centerline_deriv_rescorr, \
+        y_centerline_deriv_rescorr, z_centerline_deriv_rescorr = centerline.average_coordinates_over_slices(im_seg)
+
+        # compute Z axis of the image, in physical coordinate
+        axis_X, axis_Y, axis_Z = im_seg.get_directions()
+
+    else:
+        # fit centerline, smooth it and return the first derivative (in voxel space but FITTED coordinates)
+        x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv = \
+            smooth_centerline(fname_seg, algo_fitting=algo_fitting, type_window=type_window,
+                              window_length=window_length,
+                              nurbs_pts_number=3000, phys_coordinates=False, verbose=verbose, all_slices=True)
+
+        # correct centerline fitted coordinates according to the data resolution
+        x_centerline_fit_rescorr, y_centerline_fit_rescorr, z_centerline_rescorr, \
+        x_centerline_deriv_rescorr, y_centerline_deriv_rescorr, z_centerline_deriv_rescorr = \
+            x_centerline_fit * px, y_centerline_fit * py, z_centerline * pz, \
+            x_centerline_deriv * px, y_centerline_deriv * py, z_centerline_deriv * pz
+
+        axis_Z = [0.0, 0.0, 1.0]
+
+    # Compute CSA
+    sct.printv('\nCompute CSA...', verbose)
+
+    # Empty arrays in which CSA for each z slice will be stored
+    csa = np.zeros(max_z_index - min_z_index + 1)
+    angles = np.zeros(max_z_index - min_z_index + 1)
+
+    for iz in range(min_z_index, max_z_index + 1):
+        if angle_correction:
+            # in the case of problematic segmentation (e.g., non continuous segmentation often at the extremities),
+            # display a warning but do not crash
+            try:
+                # normalize the tangent vector to the centerline (i.e. its derivative)
+                tangent_vect = normalize(np.array(
+                    [x_centerline_deriv_rescorr[iz - min_z_index], y_centerline_deriv_rescorr[iz - min_z_index],
+                     z_centerline_deriv_rescorr[iz - min_z_index]]))
+
+            except IndexError:
+                sct.printv(
+                    'WARNING: Your segmentation does not seem continuous, which could cause wrong estimations at the '
+                    'problematic slices. Please check it, especially at the extremities.',
+                    type='warning')
+
+            # compute the angle between the normal vector of the plane and the vector z
+            angle = np.arccos(np.vdot(tangent_vect, axis_Z))
+        else:
+            angle = 0.0
+
+        # compute the number of voxels, assuming the segmentation is coded for partial volume effect between 0 and 1.
+        number_voxels = np.sum(data_seg[:, :, iz])
+
+        # compute CSA, by scaling with voxel size (in mm) and adjusting for oblique plane
+        csa[iz - min_z_index] = number_voxels * px * py * np.cos(angle)
+        angles[iz - min_z_index] = math.degrees(angle)
+
+    # TODO: DEAL WITH THE STUFF BELOW
+    # if OUTPUT_CSA_VOLUME:
+    #     # output volume of csa values
+    #     # TODO: only output if asked for (people don't use it)
+    #     sct.printv('\nCreate volume of CSA values...', verbose)
+    #     data_csa = data_seg.astype(np.float32, copy=False)
+    #     # loop across slices
+    #     for iz in range(min_z_index, max_z_index + 1):
+    #         # retrieve seg pixels
+    #         x_seg, y_seg = (data_csa[:, :, iz] > 0).nonzero()
+    #         seg = [[x_seg[i], y_seg[i]] for i in range(0, len(x_seg))]
+    #         # loop across pixels in segmentation
+    #         for i in seg:
+    #             # replace value with csa value
+    #             data_csa[i[0], i[1], iz] = csa[iz - min_z_index]
+    #     # replace data
+    #     im_seg.data = data_csa
+    #     # set original orientation
+    #     # TODO: FIND ANOTHER WAY!!
+    #     # im_seg.change_orientation(orientation) --> DOES NOT WORK!
+    #     # set file name -- use .gz because faster to write
+    #     im_seg.setFileName('csa_volume_RPI.nii.gz')
+    #     im_seg.changeType('float32')
+    #     # save volume
+    #     im_seg.save()
+    #     # get orientation of the input data
+    #     im_seg_original = Image('segmentation.nii.gz')
+    #     orientation = im_seg_original.orientation
+    #     sct.run(['sct_image', '-i', 'csa_volume_RPI.nii.gz', '-setorient', orientation, '-o',
+    #              'csa_volume_in_initial_orientation.nii.gz'])
+    #     sct.generate_output_file(os.path.join(path_tmp, "csa_volume_in_initial_orientation.nii.gz"),
+    #                              os.path.join(output_folder,
+    #                                           'csa_image.nii.gz'))  # extension already included in name_output
+    #
+    # if OUTPUT_ANGLE_VOLUME:
+    #     # output volume of angle values
+    #     # TODO: only output if asked for (people don't use it)
+    #     sct.printv('\nCreate volume of angle values...', verbose)
+    #     data_angle = data_seg.astype(np.float32, copy=False)
+    #     # loop across slices
+    #     for iz in range(min_z_index, max_z_index + 1):
+    #         # retrieve seg pixels
+    #         x_seg, y_seg = (data_angle[:, :, iz] > 0).nonzero()
+    #         seg = [[x_seg[i], y_seg[i]] for i in range(0, len(x_seg))]
+    #         # loop across pixels in segmentation
+    #         for i in seg:
+    #             # replace value with csa value
+    #             data_angle[i[0], i[1], iz] = angles[iz - min_z_index]
+    #     # replace data
+    #     im_seg.data = data_angle
+    #     # set original orientation
+    #     # TODO: FIND ANOTHER WAY!!
+    #     # im_seg.change_orientation(orientation) --> DOES NOT WORK!
+    #     # set file name -- use .gz because faster to write
+    #     im_seg.setFileName('angle_volume_RPI.nii.gz')
+    #     im_seg.changeType('float32')
+    #     # save volume
+    #     im_seg.save()
+    #     # get orientation of the input data
+    #     im_seg_original = Image('segmentation.nii.gz')
+    #     orientation = im_seg_original.orientation
+    #     sct.run(['sct_image', '-i', 'angle_volume_RPI.nii.gz', '-setorient', orientation, '-o',
+    #              'angle_volume_in_initial_orientation.nii.gz'])
+    #     sct.generate_output_file(os.path.join(path_tmp, "angle_volume_in_initial_orientation.nii.gz"),
+    #                              os.path.join(output_folder,
+    #                                           'angle_image.nii.gz'))  # extension already included in name_output
+
+    # Remove temporary files
+    if remove_temp_files:
+        sct.printv('\nRemove temporary files...')
+        sct.rmtree(path_tmp)
+
+    # prepare output
+    metrics = [csa, angles]
+    headers = ['CSA [mm^2]', 'Angle between cord and S-I direction [deg]']
+    return metrics, headers
+
+
+def compute_csa_from_file(fname_segmentation, overwrite, verbose, remove_temp_files, slices, vert_levels,
+                          fname_vert_levels='', perslice=0, perlevel=0, algo_fitting='hanning',
+                          type_window='hanning', window_length=80, angle_correction=True, use_phys_coord=True,
+                          file_out='csa'):
+    """
+    Wrapper for compute_csa()
+    :param fname_segmentation:
+    :param overwrite:
+    :param verbose:
+    :param remove_temp_files:
+    :param slices:
+    :param vert_levels:
+    :param fname_vertebral_labeling:
+    :param perslice:
+    :param perlevel:
+    :param algo_fitting:
+    :param type_window:
+    :param window_length:
+    :param angle_correction:
+    :param use_phys_coord:
+    :param file_out:
+    :return:
+    """
+    im_seg = Image(fname_segmentation)
+    metrics, headers = compute_csa(im_seg, verbose, remove_temp_files, algo_fitting=algo_fitting,
+                                   type_window=type_window, window_length=window_length,
+                                   angle_correction=angle_correction, use_phys_coord=use_phys_coord)
+
+    # write output file
+    average_per_slice_or_level(metrics, header=headers,
+                               slices=slices, perslice=perslice, vert_levels=vert_levels, perlevel=perlevel,
+                               fname_vert_levels=fname_vert_levels, file_out=file_out, overwrite=overwrite)
 
 
 def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fitting='hanning', type_window='hanning',
@@ -312,216 +523,6 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fi
     if remove_temp_files:
         sct.printv('\nRemove temporary files...', verbose)
         sct.rmtree(path_tmp)
-
-
-def compute_csa(im_seg, verbose, remove_temp_files, algo_fitting='hanning', type_window='hanning', window_length=80,
-                angle_correction=True, use_phys_coord=True):
-    """
-    Compute CSA.
-    Note: segmentation can be binary or weighted for partial volume effect.
-    :param im_seg:
-    :param verbose:
-    :param remove_temp_files:
-    :param algo_fitting:
-    :param type_window:
-    :param window_length:
-    :param angle_correction:
-    :param use_phys_coord:
-    :return:
-    """
-    # TODO: do everything in RAM instead of adding unecessary i/o. For that we need a wrapper for smooth_centerline()
-    # create temporary folder
-    path_tmp = sct.tmp_create()
-    # change orientation to RPI
-    im_seg.change_orientation('RPI')
-    nx, ny, nz, nt, px, py, pz, pt = im_seg.dim
-    fname_seg = os.path.join(path_tmp, 'segmentation_RPI.nii.gz')
-    im_seg.setFileName(fname_seg)
-    im_seg.save()
-
-    # # Extract min and max index in Z direction
-    data_seg = im_seg.data
-    X, Y, Z = (data_seg > 0).nonzero()
-    min_z_index, max_z_index = min(Z), max(Z)
-
-    # if angle correction is required, get segmentation centerline
-    # Note: even if angle_correction=0, we should run the code below so that z_centerline_voxel is defined (later used
-    # with option -vert). See #1791
-    if use_phys_coord:
-        # fit centerline, smooth it and return the first derivative (in physical space)
-        x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv = \
-            smooth_centerline(fname_seg, algo_fitting=algo_fitting, type_window=type_window,
-                              window_length=window_length, nurbs_pts_number=3000, phys_coordinates=True,
-                              verbose=verbose, all_slices=False)
-        centerline = Centerline(x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv,
-                                y_centerline_deriv, z_centerline_deriv)
-
-        # average centerline coordinates over slices of the image
-        x_centerline_fit_rescorr, y_centerline_fit_rescorr, z_centerline_rescorr, x_centerline_deriv_rescorr, \
-        y_centerline_deriv_rescorr, z_centerline_deriv_rescorr = centerline.average_coordinates_over_slices(im_seg)
-
-        # compute Z axis of the image, in physical coordinate
-        axis_X, axis_Y, axis_Z = im_seg.get_directions()
-
-    else:
-        # fit centerline, smooth it and return the first derivative (in voxel space but FITTED coordinates)
-        x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv = \
-            smooth_centerline(fname_seg, algo_fitting=algo_fitting, type_window=type_window, window_length=window_length,
-            nurbs_pts_number=3000, phys_coordinates=False, verbose=verbose, all_slices=True)
-
-        # correct centerline fitted coordinates according to the data resolution
-        x_centerline_fit_rescorr, y_centerline_fit_rescorr, z_centerline_rescorr, \
-        x_centerline_deriv_rescorr, y_centerline_deriv_rescorr, z_centerline_deriv_rescorr = \
-            x_centerline_fit * px, y_centerline_fit * py, z_centerline * pz, \
-            x_centerline_deriv * px, y_centerline_deriv * py, z_centerline_deriv * pz
-
-        axis_Z = [0.0, 0.0, 1.0]
-
-    # Compute CSA
-    sct.printv('\nCompute CSA...', verbose)
-
-    # Empty arrays in which CSA for each z slice will be stored
-    csa = np.zeros(max_z_index - min_z_index + 1)
-    angles = np.zeros(max_z_index - min_z_index + 1)
-
-    for iz in range(min_z_index, max_z_index + 1):
-        if angle_correction:
-            # in the case of problematic segmentation (e.g., non continuous segmentation often at the extremities),
-            # display a warning but do not crash
-            try:
-                # normalize the tangent vector to the centerline (i.e. its derivative)
-                tangent_vect = normalize(np.array(
-                    [x_centerline_deriv_rescorr[iz - min_z_index], y_centerline_deriv_rescorr[iz - min_z_index],
-                     z_centerline_deriv_rescorr[iz - min_z_index]]))
-
-            except IndexError:
-                sct.printv(
-                    'WARNING: Your segmentation does not seem continuous, which could cause wrong estimations at the '
-                    'problematic slices. Please check it, especially at the extremities.',
-                    type='warning')
-
-            # compute the angle between the normal vector of the plane and the vector z
-            angle = np.arccos(np.vdot(tangent_vect, axis_Z))
-        else:
-            angle = 0.0
-
-        # compute the number of voxels, assuming the segmentation is coded for partial volume effect between 0 and 1.
-        number_voxels = np.sum(data_seg[:, :, iz])
-
-        # compute CSA, by scaling with voxel size (in mm) and adjusting for oblique plane
-        csa[iz - min_z_index] = number_voxels * px * py * np.cos(angle)
-        angles[iz - min_z_index] = math.degrees(angle)
-
-    # TODO: DEAL WITH THE STUFF BELOW
-    # if OUTPUT_CSA_VOLUME:
-    #     # output volume of csa values
-    #     # TODO: only output if asked for (people don't use it)
-    #     sct.printv('\nCreate volume of CSA values...', verbose)
-    #     data_csa = data_seg.astype(np.float32, copy=False)
-    #     # loop across slices
-    #     for iz in range(min_z_index, max_z_index + 1):
-    #         # retrieve seg pixels
-    #         x_seg, y_seg = (data_csa[:, :, iz] > 0).nonzero()
-    #         seg = [[x_seg[i], y_seg[i]] for i in range(0, len(x_seg))]
-    #         # loop across pixels in segmentation
-    #         for i in seg:
-    #             # replace value with csa value
-    #             data_csa[i[0], i[1], iz] = csa[iz - min_z_index]
-    #     # replace data
-    #     im_seg.data = data_csa
-    #     # set original orientation
-    #     # TODO: FIND ANOTHER WAY!!
-    #     # im_seg.change_orientation(orientation) --> DOES NOT WORK!
-    #     # set file name -- use .gz because faster to write
-    #     im_seg.setFileName('csa_volume_RPI.nii.gz')
-    #     im_seg.changeType('float32')
-    #     # save volume
-    #     im_seg.save()
-    #     # get orientation of the input data
-    #     im_seg_original = Image('segmentation.nii.gz')
-    #     orientation = im_seg_original.orientation
-    #     sct.run(['sct_image', '-i', 'csa_volume_RPI.nii.gz', '-setorient', orientation, '-o',
-    #              'csa_volume_in_initial_orientation.nii.gz'])
-    #     sct.generate_output_file(os.path.join(path_tmp, "csa_volume_in_initial_orientation.nii.gz"),
-    #                              os.path.join(output_folder,
-    #                                           'csa_image.nii.gz'))  # extension already included in name_output
-    #
-    # if OUTPUT_ANGLE_VOLUME:
-    #     # output volume of angle values
-    #     # TODO: only output if asked for (people don't use it)
-    #     sct.printv('\nCreate volume of angle values...', verbose)
-    #     data_angle = data_seg.astype(np.float32, copy=False)
-    #     # loop across slices
-    #     for iz in range(min_z_index, max_z_index + 1):
-    #         # retrieve seg pixels
-    #         x_seg, y_seg = (data_angle[:, :, iz] > 0).nonzero()
-    #         seg = [[x_seg[i], y_seg[i]] for i in range(0, len(x_seg))]
-    #         # loop across pixels in segmentation
-    #         for i in seg:
-    #             # replace value with csa value
-    #             data_angle[i[0], i[1], iz] = angles[iz - min_z_index]
-    #     # replace data
-    #     im_seg.data = data_angle
-    #     # set original orientation
-    #     # TODO: FIND ANOTHER WAY!!
-    #     # im_seg.change_orientation(orientation) --> DOES NOT WORK!
-    #     # set file name -- use .gz because faster to write
-    #     im_seg.setFileName('angle_volume_RPI.nii.gz')
-    #     im_seg.changeType('float32')
-    #     # save volume
-    #     im_seg.save()
-    #     # get orientation of the input data
-    #     im_seg_original = Image('segmentation.nii.gz')
-    #     orientation = im_seg_original.orientation
-    #     sct.run(['sct_image', '-i', 'angle_volume_RPI.nii.gz', '-setorient', orientation, '-o',
-    #              'angle_volume_in_initial_orientation.nii.gz'])
-    #     sct.generate_output_file(os.path.join(path_tmp, "angle_volume_in_initial_orientation.nii.gz"),
-    #                              os.path.join(output_folder,
-    #                                           'angle_image.nii.gz'))  # extension already included in name_output
-
-    # Remove temporary files
-    if remove_temp_files:
-        sct.printv('\nRemove temporary files...')
-        sct.rmtree(path_tmp)
-
-    # prepare output
-    metrics = [csa, angles]
-    headers = ['CSA [mm^2]','Angle between cord and S-I direction [deg]']
-    return metrics, headers
-
-
-def compute_csa_from_file(fname_segmentation, overwrite, verbose, remove_temp_files, slices, vert_levels,
-                          fname_vert_levels='', perslice=0, perlevel=0, algo_fitting='hanning',
-                          type_window='hanning', window_length=80, angle_correction=True, use_phys_coord=True,
-                          file_out='csa'):
-    """
-    Wrapper for compute_csa()
-    :param fname_segmentation:
-    :param overwrite:
-    :param verbose:
-    :param remove_temp_files:
-    :param slices:
-    :param vert_levels:
-    :param fname_vertebral_labeling:
-    :param perslice:
-    :param perlevel:
-    :param algo_fitting:
-    :param type_window:
-    :param window_length:
-    :param angle_correction:
-    :param use_phys_coord:
-    :param file_out:
-    :return:
-    """
-    im_seg = Image(fname_segmentation)
-    metrics, headers = compute_csa(im_seg, verbose, remove_temp_files, algo_fitting=algo_fitting,
-                                   type_window=type_window, window_length=window_length,
-                                   angle_correction=angle_correction, use_phys_coord=use_phys_coord)
-
-    # write output file
-    average_per_slice_or_level(metrics, header=headers,
-                               slices=slices, perslice=perslice, vert_levels=vert_levels, perlevel=perlevel,
-                               fname_vert_levels=fname_vert_levels, file_out=file_out, overwrite=overwrite)
 
 
 def label_vert(fname_seg, fname_label, fname_out='', verbose=1):

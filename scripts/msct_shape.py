@@ -145,11 +145,6 @@ def compute_properties_along_centerline(fname_seg_image, fname_discs='', smooth_
                      'orientation',
                      'symmetry']
 
-    # property_list_local.remove('diameters')
-    # property_list_local.append('major_axis_length')
-    # property_list_local.append('minor_axis_length')
-    # property_list_local.append('orientation')
-
     # TODO: make sure fname_segmentation and fname_disks are in the same space
     path_tmp = sct.tmp_create(basename="compute_properties_along_centerline", verbose=verbose)
 
@@ -249,11 +244,6 @@ def compute_properties_along_centerline(fname_seg_image, fname_discs='', smooth_
                 sct.printv('WARNING: no properties for slice', c[2])
 
             pbar.update(1)
-
-    # Adding centerline to the properties for later use
-    # UPDATE JULIEN: removed the line below because this property has different type than other properties (Centerline
-    # vs. array), causing troubles later in the code. Would be better to export it in a different way.
-    # properties['centerline'] = centerline
 
     # smooth the spinal cord shape with a gaussian kernel if required
     # TODO: remove this smoothing

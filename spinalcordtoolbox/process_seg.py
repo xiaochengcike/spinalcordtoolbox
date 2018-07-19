@@ -18,7 +18,7 @@ OUTPUT_ANGLE_VOLUME = 0
 
 
 def compute_shape(fname_segmentation, slices='', vert_levels='', fname_vert_levels='', perslice=0, perlevel=0,
-                  file_out='shape', overwrite=0, fname_discs=None, remove_temp_files=1, verbose=1):
+                  file_out='shape', overwrite=0, remove_temp_files=1, verbose=1):
     """
     This function characterizes the shape of the spinal cord, based on the segmentation
     Shape properties are computed along the spinal cord and averaged per z-slices.

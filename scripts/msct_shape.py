@@ -296,7 +296,7 @@ def compute_properties_along_centerline(fname_seg_image, fname_discs='', smooth_
     if remove_temp_files:
         sct.rmtree(path_tmp)
 
-    return property_list, averaged_shape
+    return averaged_shape
 
 
 """

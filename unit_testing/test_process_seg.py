@@ -34,22 +34,22 @@ def dummy_segmentation():
     nib.save(img, fname_seg)
     return fname_seg
 
-#
-# # noinspection 801,PyShadowingNames
-# def test_extract_centerline(dummy_segmentation):
-#     """Test extraction of centerline from input segmentation"""
-#     process_seg.extract_centerline(dummy_segmentation, 0, file_out='centerline')
-#     # open created csv file
-#     centerline_out = []
-#     with open('centerline.csv', 'rb') as f:
-#         reader = csv.reader(f)
-#         reader.next()  # skip header
-#         for row in reader:
-#             centerline_out.append([int(i) for i in row])
-#     # build ground-truth centerline
-#     k = [7, 8, 8, 8, 9, 9, 9, 9, 10, 10, 10, 10, 11, 11, 11, 11, 12, 12, 12, 13]
-#     centerline_true = [[i, 9, k[i]] for i in range(20)]
-#     assert centerline_out == centerline_true
+
+# noinspection 801,PyShadowingNames
+def test_extract_centerline(dummy_segmentation):
+    """Test extraction of centerline from input segmentation"""
+    process_seg.extract_centerline(dummy_segmentation, 0, file_out='centerline')
+    # open created csv file
+    centerline_out = []
+    with open('centerline.csv', 'rb') as f:
+        reader = csv.reader(f)
+        reader.next()  # skip header
+        for row in reader:
+            centerline_out.append([int(i) for i in row])
+    # build ground-truth centerline
+    k = [7, 8, 8, 8, 9, 9, 9, 9, 10, 10, 10, 10, 11, 11, 11, 11, 12, 12, 12, 13]
+    centerline_true = [[i, 9, k[i]] for i in range(20)]
+    assert centerline_out == centerline_true
 
 
 # noinspection 801,PyShadowingNames
@@ -66,25 +66,25 @@ def test_compute_csa(dummy_segmentation):
     assert float(csa_out) == pytest.approx(45.126, abs=1e-3)
     assert float(angle_out) == pytest.approx(15.050, abs=1e-3)
 
-#
-# # noinspection 801,PyShadowingNames
-# def test_compute_shape(dummy_segmentation):
-#     """Test computation of cross-sectional area from input segmentation."""
-#     # here we only quantify between 5:15 because we want to avoid edge effects due to the rotation.
-#     process_seg.compute_shape_from_file(dummy_segmentation, slices='5:15', vert_levels='', fname_vert_levels='', perslice=0,
-#                                         perlevel=0, file_out='shape', overwrite=0, remove_temp_files=1, verbose=1)
-#     # open created csv file
-#     with open('shape.csv', 'rb') as f:
-#         reader = csv.reader(f)
-#         reader.next()  # skip header
-#         area, equivalent_diameter, AP_diameter, RL_diameter, ratio_minor_major, eccentricity, solidity, orientation, \
-#         symmetry = [float(i) for i in reader.next()[2:]]
-#     assert area == pytest.approx(44.863, abs=1e-3)
-#     assert equivalent_diameter == pytest.approx(7.554, abs=1e-3)
-#     assert AP_diameter == pytest.approx(5.807, abs=1e-3)
-#     assert RL_diameter == pytest.approx(10.170, abs=1e-3)
-#     assert ratio_minor_major == pytest.approx(0.571, abs=1e-3)
-#     assert eccentricity == pytest.approx(0.818, abs=1e-5)
-#     assert solidity == pytest.approx(0.854, abs=1e-3)
-#     assert orientation == pytest.approx(-0.010, abs=1e-3)
-#     assert symmetry == pytest.approx(0.998, abs=1e-3)
+
+# noinspection 801,PyShadowingNames
+def test_compute_shape(dummy_segmentation):
+    """Test computation of cross-sectional area from input segmentation."""
+    # here we only quantify between 5:15 because we want to avoid edge effects due to the rotation.
+    process_seg.compute_shape_from_file(dummy_segmentation, slices='5:15', vert_levels='', fname_vert_levels='', perslice=0,
+                                        perlevel=0, file_out='shape', overwrite=0, remove_temp_files=1, verbose=1)
+    # open created csv file
+    with open('shape.csv', 'rb') as f:
+        reader = csv.reader(f)
+        reader.next()  # skip header
+        area, equivalent_diameter, AP_diameter, RL_diameter, ratio_minor_major, eccentricity, solidity, orientation, \
+        symmetry = [float(i) for i in reader.next()[2:]]
+    assert area == pytest.approx(44.863, abs=1e-3)
+    assert equivalent_diameter == pytest.approx(7.554, abs=1e-3)
+    assert AP_diameter == pytest.approx(5.807, abs=1e-3)
+    assert RL_diameter == pytest.approx(10.170, abs=1e-3)
+    assert ratio_minor_major == pytest.approx(0.571, abs=1e-3)
+    assert eccentricity == pytest.approx(0.818, abs=1e-5)
+    assert solidity == pytest.approx(0.854, abs=1e-3)
+    assert orientation == pytest.approx(-0.010, abs=1e-3)
+    assert symmetry == pytest.approx(0.998, abs=1e-3)

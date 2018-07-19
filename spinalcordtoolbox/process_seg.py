@@ -29,7 +29,6 @@ def compute_shape(fname_segmentation, slices='', vert_levels='', fname_vert_leve
     """
 
     shape_properties = msct_shape.compute_properties_along_centerline(fname_seg_image=fname_segmentation,
-                                                                      fname_discs=fname_discs,
                                                                       smooth_factor=0.0,
                                                                       interpolation_mode=0,
                                                                       remove_temp_files=remove_temp_files,

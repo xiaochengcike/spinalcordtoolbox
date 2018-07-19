@@ -129,9 +129,8 @@ def assign_AP_and_RL_diameter(properties):
         properties['AP_diameter'] = properties['major_axis_length']
     return properties
 
-def compute_properties_along_centerline(fname_seg_image, fname_discs='', smooth_factor=5.0, interpolation_mode=0, remove_temp_files=1, verbose=1):
+def compute_properties_along_centerline(fname_seg_image, smooth_factor=5.0, interpolation_mode=0, remove_temp_files=1, verbose=1):
 
-    # TODO: remove fname_discs if not used
     # TODO: set order of list at the beginning
     # TODO: deal with overwrite, slices, etc.
     # List of properties to output (in the right order)
@@ -147,10 +146,6 @@ def compute_properties_along_centerline(fname_seg_image, fname_discs='', smooth_
 
     # TODO: make sure fname_segmentation and fname_disks are in the same space
     path_tmp = sct.tmp_create(basename="compute_properties_along_centerline", verbose=verbose)
-
-    sct.copy(fname_seg_image, path_tmp)
-    if fname_discs:
-        sct.copy(fname_discs, path_tmp)
 
     # go to tmp folder
     curdir = os.getcwd()
@@ -185,25 +180,6 @@ def compute_properties_along_centerline(fname_seg_image, fname_discs='', smooth_
     centerline = Centerline(x_centerline_fit, y_centerline_fit, z_centerline,
                             x_centerline_deriv, y_centerline_deriv, z_centerline_deriv)
 
-    # Compute vertebral distribution along centerline based on position of intervertebral disks
-    if fname_discs:
-        fname_disks = os.path.abspath(fname_discs)
-        path_data, file_data, ext_data = sct.extract_fname(fname_disks)
-        im_disks = Image(file_data + ext_data)
-        fname_disks_orient = 'disks_rpi' + ext_data
-        image_disks = set_orientation(im_disks, 'RPI')
-        image_disks.setFileName(fname_disks_orient)
-        image_disks.save()
-
-        image_disks = Image(fname_disks_orient)
-        coord = image_disks.getNonZeroCoordinates(sorting='z', reverse_coord=True)
-        coord_physical = []
-        for c in coord:
-            c_p = image_disks.transfo_pix2phys([[c.x, c.y, c.z]])[0]
-            c_p.append(c.value)
-            coord_physical.append(c_p)
-        centerline.compute_vertebral_distribution(coord_physical)
-
     sct.printv('Computing spinal cord shape along the spinal cord...')
     with tqdm.tqdm(total=centerline.number_of_points) as pbar:
 
@@ -233,9 +209,6 @@ def compute_properties_along_centerline(fname_seg_image, fname_discs='', smooth_
             # loop across properties and assign values for function output
             if sc_properties is not None:
                 properties['incremental_length'].append(centerline.incremental_length[index])
-                if fname_discs:
-                    properties['distance_from_C1'].append(centerline.dist_points[index])
-                    properties['vertebral_level'].append(centerline.l_points[index])
                 properties['z_slice'].append(image.transfo_phys2pix([centerline.points[index]])[0][2])
                 for property_name in property_list:
                     properties[property_name].append(sc_properties[property_name])
@@ -257,8 +230,6 @@ def compute_properties_along_centerline(fname_seg_image, fname_discs='', smooth_
     # Display properties on the referential space. Requires intervertebral disks
     if verbose == 2:
         x_increment = 'distance_from_C1'
-        if fname_discs:
-            x_increment = 'incremental_length'
 
         # Display the image and plot all contours found
         fig, axes = plt.subplots(len(property_list), sharex=True, sharey=False)
@@ -266,13 +237,7 @@ def compute_properties_along_centerline(fname_seg_image, fname_discs='', smooth_
             axes[k].plot(properties[x_increment], properties[property_name])
             axes[k].set_ylabel(property_name)
 
-        if fname_discs:
-            properties['distance_disk_from_C1'] = centerline.distance_from_C1label  # distance between each disk and C1 (or first disk)
-            xlabel_disks = [centerline.convert_vertlabel2disklabel[label] for label in properties['distance_disk_from_C1']]
-            xtick_disks = [properties['distance_disk_from_C1'][label] for label in properties['distance_disk_from_C1']]
-            plt.xticks(xtick_disks, xlabel_disks, rotation=30)
-        else:
-            axes[-1].set_xlabel('Position along the spinal cord (in mm)')
+        axes[-1].set_xlabel('Position along the spinal cord (in mm)')
 
         plt.show()
 

@@ -363,11 +363,6 @@ def compute_csa(im_seg, verbose, remove_temp_files, algo_fitting='hanning', type
         # compute Z axis of the image, in physical coordinate
         axis_X, axis_Y, axis_Z = im_seg.get_directions()
 
-        # compute z_centerline in image coordinates for usage in vertebrae mapping
-        z_centerline_voxel = [coord[2] for coord in im_seg.transfo_phys2pix(
-            [[x_centerline_fit_rescorr[i], y_centerline_fit_rescorr[i], z_centerline_rescorr[i]] for i in
-             range(len(z_centerline_rescorr))])]
-
     else:
         # fit centerline, smooth it and return the first derivative (in voxel space but FITTED coordinates)
         x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv = \
@@ -391,7 +386,8 @@ def compute_csa(im_seg, verbose, remove_temp_files, algo_fitting='hanning', type
 
     for iz in range(min_z_index, max_z_index + 1):
         if angle_correction:
-            # in the case of problematic segmentation (e.g., non continuous segmentation often at the extremities), display a warning but do not crash
+            # in the case of problematic segmentation (e.g., non continuous segmentation often at the extremities),
+            # display a warning but do not crash
             try:
                 # normalize the tangent vector to the centerline (i.e. its derivative)
                 tangent_vect = normalize(np.array(
@@ -400,7 +396,8 @@ def compute_csa(im_seg, verbose, remove_temp_files, algo_fitting='hanning', type
 
             except IndexError:
                 sct.printv(
-                    'WARNING: Your segmentation does not seem continuous, which could cause wrong estimations at the problematic slices. Please check it, especially at the extremities.',
+                    'WARNING: Your segmentation does not seem continuous, which could cause wrong estimations at the '
+                    'problematic slices. Please check it, especially at the extremities.',
                     type='warning')
 
             # compute the angle between the normal vector of the plane and the vector z
@@ -491,7 +488,6 @@ def compute_csa(im_seg, verbose, remove_temp_files, algo_fitting='hanning', type
     metrics = [csa, angles]
     headers = ['CSA [mm^2]','Angle between cord and S-I direction [deg]']
     return metrics, headers
-
 
 
 def compute_csa_from_file(fname_segmentation, overwrite, verbose, remove_temp_files, slices, vert_levels,

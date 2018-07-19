@@ -129,6 +129,7 @@ def assign_AP_and_RL_diameter(properties):
         properties['AP_diameter'] = properties['major_axis_length']
     return properties
 
+
 def compute_properties_along_centerline(fname_seg_image, smooth_factor=5.0, interpolation_mode=0, remove_temp_files=1, verbose=1):
 
     # TODO: set order of list at the beginning

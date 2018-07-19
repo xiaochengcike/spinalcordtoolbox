@@ -27,23 +27,13 @@ def compute_shape(fname_segmentation, slices='', vert_levels='', fname_vert_leve
     Shape properties are computed along the spinal cord and averaged per z-slices.
     Option is to provide intervertebral disks to average shape properties over vertebral levels (fname_discs).
     """
-    # TODO: deal with overwrite, slices, etc.
-    # List of properties to compute on spinal cord
-    property_list = ['area',
-                     'diameters',
-                     'equivalent_diameter',
-                     'ratio_minor_major',
-                     'eccentricity',
-                     'solidity',
-                     'symmetry']
 
-    property_list, shape_properties = msct_shape.compute_properties_along_centerline(fname_seg_image=fname_segmentation,
-                                                                                     property_list=property_list,
-                                                                                     fname_discs=fname_discs,
-                                                                                     smooth_factor=0.0,
-                                                                                     interpolation_mode=0,
-                                                                                     remove_temp_files=remove_temp_files,
-                                                                                     verbose=verbose)
+    shape_properties = msct_shape.compute_properties_along_centerline(fname_seg_image=fname_segmentation,
+                                                                      fname_discs=fname_discs,
+                                                                      smooth_factor=0.0,
+                                                                      interpolation_mode=0,
+                                                                      remove_temp_files=remove_temp_files,
+                                                                      verbose=verbose)
 
     # TODO: when switching to Python3, replace iteritems() by items()
     headers = []

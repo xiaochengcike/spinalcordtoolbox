@@ -371,7 +371,7 @@ def compute_csa_from_file(fname_segmentation, overwrite, verbose, remove_temp_fi
     :param remove_temp_files:
     :param slices:
     :param vert_levels:
-    :param fname_vertebral_labeling:
+    :param fname_vert_levels:
     :param perslice:
     :param perlevel:
     :param algo_fitting:

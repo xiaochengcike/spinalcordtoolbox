@@ -228,16 +228,16 @@ def main(args):
     # update fields
     param.verbose = verbose
 
+    # update file_out with name of process
+    if not file_out:
+        file_out = name_process
+
     if name_process == 'centerline':
-        if not file_out:
-            file_out = 'centerline'
         process_seg.extract_centerline(fname_segmentation, remove_temp_files, verbose=param.verbose,
                                        algo_fitting=param.algo_fitting, use_phys_coord=use_phys_coord,
                                        file_out=file_out)
 
     if name_process == 'csa':
-        if not file_out:
-            file_out = 'csa'
         process_seg.compute_csa_from_file(fname_segmentation, overwrite, verbose, remove_temp_files, slices,
                                           vert_levels, fname_vert_levels=fname_vert_levels, perslice=perslice,
                                           perlevel=perlevel, algo_fitting=param.algo_fitting,
@@ -257,8 +257,6 @@ def main(args):
                                    vert_levels, fname_vert_levels, verbose=verbose)
 
     if name_process == 'shape':
-        if not file_out:
-            file_out = 'shape'
         fname_discs = None
         if '-discfile' in arguments:
             fname_discs = arguments['-discfile']

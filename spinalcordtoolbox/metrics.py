@@ -2,17 +2,11 @@
 # -*- coding: utf-8
 # Functions dealing with metrics quantification across slices and/or vertebral levels and output (csv, etc.)
 
-import os, math
-import pandas as pd
 import numpy as np
 import sct_utils as sct
 from sct_image import Image, set_orientation
-from sct_straighten_spinalcord import smooth_centerline
-import msct_shape
-from msct_types import Centerline
 from spinalcordtoolbox.utils import parse_num_list
 from spinalcordtoolbox.template import get_slices_from_vertebral_levels
-from spinalcordtoolbox.centerline import optic
 
 
 def average_per_slice_or_level(metrics, header='', slices='', perslice=1, vert_levels='', perlevel=0,

@@ -175,11 +175,11 @@ def compute_shape_from_file(fname_segmentation, slices='', vert_levels='', fname
     This function is a wrapper for compute_shape()
     """
     im_seg = Image(fname_segmentation)
-    metrics, headers = compute_shape(im_seg, remove_temp_files=1, verbose=1)
+    metrics, headers = compute_shape(im_seg, remove_temp_files=remove_temp_files, verbose=verbose)
     # write output file
-    average_per_slice_or_level(metrics, header=headers,
-                               slices=slices, perslice=perslice, vert_levels=vert_levels, perlevel=perlevel,
-                               fname_vert_levels=fname_vert_levels, file_out=file_out, overwrite=overwrite)
+    average_per_slice_or_level(metrics, header=headers, slices=slices, perslice=perslice, vert_levels=vert_levels,
+                               perlevel=perlevel, fname_vert_levels=fname_vert_levels, file_out=file_out,
+                               overwrite=overwrite)
 
 
 def compute_csa(im_seg, verbose, remove_temp_files, algo_fitting='hanning', type_window='hanning', window_length=80,

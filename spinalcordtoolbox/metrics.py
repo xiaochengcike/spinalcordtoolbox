@@ -12,6 +12,8 @@ from spinalcordtoolbox.template import get_slices_from_vertebral_levels
 def average_per_slice_or_level(metrics, header='', slices='', perslice=1, vert_levels='', perlevel=0,
                                fname_vert_levels='', file_out='metrics', overwrite=1):
 
+    # TODO: combine metrics+header into an OrderedDictionary
+    # TODO: remove the csv writing part from this function and create wrapper average_per_slice_or_level_to_file().
     # TODO: check last dimension is S-I
     nz = len(metrics[0])  # retrieve number of slices from the first metric (assuming they all have the same shape)
     if slices:
@@ -47,6 +49,7 @@ def average_per_slice_or_level(metrics, header='', slices='', perslice=1, vert_l
             # ['2', '3', '4'] -> ['2,3,4']
             vertgroups = [','.join(vertgroups)]
             slicegroups = [','.join(slicegroups)]
+
     # Create output csv file
     fname_out = file_out + '.csv'
     file_results = open(fname_out, 'w')

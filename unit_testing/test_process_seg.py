@@ -84,7 +84,7 @@ def test_compute_shape(dummy_segmentation):
     assert AP_diameter == pytest.approx(5.807, abs=1e-3)
     assert RL_diameter == pytest.approx(10.170, abs=1e-3)
     assert ratio_minor_major == pytest.approx(0.571, abs=1e-3)
-    assert eccentricity == pytest.approx(0.818, abs=1e-5)
+    assert eccentricity == pytest.approx(0.818, abs=1e-3)
     assert solidity == pytest.approx(0.854, abs=1e-3)
     assert orientation == pytest.approx(-0.010, abs=1e-3)
     assert symmetry == pytest.approx(0.998, abs=1e-3)

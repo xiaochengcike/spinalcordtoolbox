@@ -62,9 +62,9 @@ def test_compute_csa(dummy_segmentation):
     with open('csa.csv', 'rb') as f:
         reader = csv.reader(f)
         reader.next()  # skip header
-        csa_out, angle_out = reader.next()[2:4]
-    assert float(csa_out) == pytest.approx(45.126, abs=1e-3)
-    assert float(angle_out) == pytest.approx(15.050, abs=1e-3)
+        csa_out, angle_out = [float(i) for i in reader.next()[2:]]
+    assert csa_out == pytest.approx(45.107, abs=1e-3)
+    assert angle_out == pytest.approx(15.144, abs=1e-3)
 
 
 # noinspection 801,PyShadowingNames

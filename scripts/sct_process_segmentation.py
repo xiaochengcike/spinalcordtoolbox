@@ -238,12 +238,12 @@ def main(args):
                                        file_out=file_out)
 
     if name_process == 'csa':
-        process_seg.compute_csa_from_file(fname_segmentation, overwrite, verbose, remove_temp_files, slices,
-                                          vert_levels, fname_vert_levels=fname_vert_levels, perslice=perslice,
-                                          perlevel=perlevel, algo_fitting=param.algo_fitting,
-                                          type_window=param.type_window, window_length=param.window_length,
-                                          angle_correction=angle_correction, use_phys_coord=use_phys_coord,
-                                          file_out=file_out)
+        process_seg.compute_csa(fname_segmentation, overwrite, verbose, remove_temp_files, slices,
+                                vert_levels, fname_vert_levels=fname_vert_levels, perslice=perslice,
+                                perlevel=perlevel, algo_fitting=param.algo_fitting,
+                                type_window=param.type_window, window_length=param.window_length,
+                                angle_correction=angle_correction, use_phys_coord=use_phys_coord,
+                                file_out=file_out)
 
     if name_process == 'label-vert':
         if '-discfile' in arguments:

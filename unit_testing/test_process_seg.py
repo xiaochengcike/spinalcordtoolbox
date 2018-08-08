@@ -55,9 +55,9 @@ def test_extract_centerline(dummy_segmentation):
 # noinspection 801,PyShadowingNames
 def test_compute_csa(dummy_segmentation):
     """Test computation of cross-sectional area from input segmentation"""
-    process_seg.compute_csa_from_file(dummy_segmentation, 1, 1, 1, '5:15', '', fname_vert_levels='', perslice=0,
-                                      perlevel=0, algo_fitting='hanning', type_window='hanning', window_length=10,
-                                      angle_correction=True, use_phys_coord=True, file_out='csa')
+    process_seg.compute_csa(dummy_segmentation, 1, 1, 1, '5:15', '', fname_vert_levels='', perslice=0,
+                            perlevel=0, algo_fitting='hanning', type_window='hanning', window_length=10,
+                            angle_correction=True, use_phys_coord=True, file_out='csa')
     # open created csv file
     with open('csa.csv', 'rb') as f:
         reader = csv.reader(f)

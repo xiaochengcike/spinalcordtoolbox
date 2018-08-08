@@ -146,21 +146,32 @@ def compute_length(fname_segmentation, remove_temp_files, output_folder, overwri
     return length
 
 
-def compute_csa(im_seg, verbose, remove_temp_files, algo_fitting='hanning', type_window='hanning', window_length=80,
-                angle_correction=True, use_phys_coord=True):
+def compute_csa(segmentation, overwrite, verbose, remove_temp_files, slices, vert_levels,
+                fname_vert_levels='', perslice=0, perlevel=0, algo_fitting='hanning',
+                type_window='hanning', window_length=80, angle_correction=True, use_phys_coord=True,
+                file_out='csa'):
     """
     Compute CSA.
     Note: segmentation can be binary or weighted for partial volume effect.
-    :param im_seg:
+    :param segmentation: input segmentation. Could be either an Image or a file name.
+    :param overwrite:
     :param verbose:
     :param remove_temp_files:
+    :param slices:
+    :param vert_levels:
+    :param fname_vert_levels:
+    :param perslice:
+    :param perlevel:
     :param algo_fitting:
     :param type_window:
     :param window_length:
     :param angle_correction:
     :param use_phys_coord:
+    :param file_out:
     :return:
     """
+    im_seg = Image(segmentation)
+
     # TODO: do everything in RAM instead of adding unecessary i/o. For that we need a wrapper for smooth_centerline()
     # create temporary folder
     path_tmp = sct.tmp_create()
@@ -320,38 +331,10 @@ def compute_csa(im_seg, verbose, remove_temp_files, algo_fitting='hanning', type
     # prepare output
     metrics = [csa, angles]
     headers = ['CSA [mm^2]', 'Angle between cord and S-I direction [deg]']
-    return metrics, headers
-
-
-def compute_csa_from_file(fname_segmentation, overwrite, verbose, remove_temp_files, slices, vert_levels,
-                          fname_vert_levels='', perslice=0, perlevel=0, algo_fitting='hanning',
-                          type_window='hanning', window_length=80, angle_correction=True, use_phys_coord=True,
-                          file_out='csa'):
-    """
-    Wrapper for compute_csa()
-    :param fname_segmentation:
-    :param overwrite:
-    :param verbose:
-    :param remove_temp_files:
-    :param slices:
-    :param vert_levels:
-    :param fname_vert_levels:
-    :param perslice:
-    :param perlevel:
-    :param algo_fitting:
-    :param type_window:
-    :param window_length:
-    :param angle_correction:
-    :param use_phys_coord:
-    :param file_out:
-    :return:
-    """
-    im_seg = Image(fname_segmentation)
-    metrics, headers = compute_csa(im_seg, verbose, remove_temp_files, algo_fitting=algo_fitting,
-                                   type_window=type_window, window_length=window_length,
-                                   angle_correction=angle_correction, use_phys_coord=use_phys_coord)
+    # return metrics, headers
 
     # write output file
+    # TODO: do in parent function
     average_per_slice_or_level(metrics, header=headers,
                                slices=slices, perslice=perslice, vert_levels=vert_levels, perlevel=perlevel,
                                fname_vert_levels=fname_vert_levels, file_out=file_out, overwrite=overwrite)

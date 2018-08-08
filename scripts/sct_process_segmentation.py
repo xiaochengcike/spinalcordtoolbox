@@ -260,10 +260,10 @@ def main(args):
         fname_discs = None
         if '-discfile' in arguments:
             fname_discs = arguments['-discfile']
-        process_seg.compute_shape_from_file(fname_segmentation, slices=slices, vert_levels=vert_levels,
-                                            fname_vert_levels=fname_vert_levels, perslice=perslice, perlevel=perlevel,
-                                            file_out=file_out, overwrite=overwrite, remove_temp_files=remove_temp_files,
-                                            verbose=verbose)
+        process_seg.compute_shape(fname_segmentation, slices=slices, vert_levels=vert_levels,
+                                  fname_vert_levels=fname_vert_levels, perslice=perslice, perlevel=perlevel,
+                                  file_out=file_out, overwrite=overwrite, remove_temp_files=remove_temp_files,
+                                  verbose=verbose)
 
 
 if __name__ == "__main__":

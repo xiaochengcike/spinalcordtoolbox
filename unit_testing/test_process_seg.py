@@ -71,8 +71,8 @@ def test_compute_csa(dummy_segmentation):
 def test_compute_shape(dummy_segmentation):
     """Test computation of cross-sectional area from input segmentation."""
     # here we only quantify between 5:15 because we want to avoid edge effects due to the rotation.
-    process_seg.compute_shape_from_file(dummy_segmentation, slices='5:15', vert_levels='', fname_vert_levels='', perslice=0,
-                                        perlevel=0, file_out='shape', overwrite=0, remove_temp_files=1, verbose=1)
+    process_seg.compute_shape(dummy_segmentation, slices='5:15', vert_levels='', fname_vert_levels='', perslice=0,
+                              perlevel=0, file_out='shape', overwrite=0, remove_temp_files=1, verbose=1)
     # open created csv file
     with open('shape.csv', 'rb') as f:
         reader = csv.reader(f)

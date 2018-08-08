@@ -340,13 +340,27 @@ def compute_csa(segmentation, overwrite, verbose, remove_temp_files, slices, ver
                                fname_vert_levels=fname_vert_levels, file_out=file_out, overwrite=overwrite)
 
 
-def compute_shape(im_seg, remove_temp_files=1, verbose=1):
+def compute_shape(segmentation, slices='', vert_levels='', fname_vert_levels='', perslice=0, perlevel=0,
+                  file_out='shape', overwrite=0, remove_temp_files=1, verbose=1):
     """
     This function characterizes the shape of the spinal cord, based on the segmentation
     Shape properties are computed along the spinal cord and averaged per z-slices.
     Option is to provide intervertebral disks to average shape properties over vertebral levels (fname_discs).
     WARNING: the segmentation needs to be binary.
+    :param segmentation: input segmentation. Could be either an Image or a file name.
+    :param slices:
+    :param vert_levels:
+    :param fname_vert_levels:
+    :param perslice:
+    :param perlevel:
+    :param file_out:
+    :param overwrite:
+    :param remove_temp_files:
+    :param verbose:
+    :return:
     """
+    im_seg = Image(segmentation)
+
     shape_properties = msct_shape.compute_properties_along_centerline(im_seg=im_seg,
                                                                       smooth_factor=0.0,
                                                                       interpolation_mode=0,
@@ -362,15 +376,8 @@ def compute_shape(im_seg, remove_temp_files=1, verbose=1):
             metrics.append(np.array(value))
     return metrics, headers
 
-
-def compute_shape_from_file(fname_segmentation, slices='', vert_levels='', fname_vert_levels='', perslice=0, perlevel=0,
-                  file_out='shape', overwrite=0, remove_temp_files=1, verbose=1):
-    """
-    This function is a wrapper for compute_shape()
-    """
-    im_seg = Image(fname_segmentation)
-    metrics, headers = compute_shape(im_seg, remove_temp_files=remove_temp_files, verbose=verbose)
     # write output file
+    # TODO: move to parent function
     average_per_slice_or_level(metrics, header=headers, slices=slices, perslice=perslice, vert_levels=vert_levels,
                                perlevel=perlevel, fname_vert_levels=fname_vert_levels, file_out=file_out,
                                overwrite=overwrite)

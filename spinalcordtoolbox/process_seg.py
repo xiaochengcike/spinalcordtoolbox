@@ -168,7 +168,6 @@ def compute_csa(segmentation, overwrite, verbose, remove_temp_files, slices, ver
     :param angle_correction:
     :param use_phys_coord:
     :param file_out:
-    :return:
     """
     im_seg = Image(segmentation)
 

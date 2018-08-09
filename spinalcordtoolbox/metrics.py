@@ -81,3 +81,27 @@ def average_per_slice_or_level(metrics, header='', slices='', perslice=1, vert_l
     file_results.close()
     # TODO: printout csv
     # TODO: return dict or panda structure instead of writing csv file
+
+
+def aggregate_metrics_by_vertebral_level(metrics, im_vert_levels, levels, group_funcs=None):
+    """
+    TODO
+    :param metrics: dict of (metric name, sequence of metric values)
+    :param im_vert_levels: image from which vertebral levels are figured out
+    :param levels: list of levels to aggregate metrics from
+    :param group_funcs: list of (name, func) of functions applied on values of a metric on the slices of a same level,
+    for each vertebral level
+    :return: TODO
+    """
+    if group_funcs is None:
+        group_funcs = (('mean': np.mean),)
+    out = dict((metric, dict()) for metric in metrics.keys())
+    for level in levels:
+        idx_slices = get_slice_indices_from_vertebral_levels(im_vertebral_labeling, level)
+    for metric in metrics.keys():
+        metric_data = metrics[metric]
+        level_data = [ metric_data[idx_slice] for idx_slice in idx_slices if 0 <= idx_slice < len(metric_data) ]
+    if not level_data:
+        break
+    out[metric][level] = dict((name, func(level_data)) for (name, func) in group_funcs)
+    return out

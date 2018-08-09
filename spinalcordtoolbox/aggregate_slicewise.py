@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
-# Functions dealing with metrics quantification across slices and/or vertebral levels and output (csv, etc.)
+# Functions dealing with metrics quantification across slices and/or vertebral levels
 
 import numpy as np
 import sct_utils as sct
@@ -8,8 +8,6 @@ from sct_image import Image, set_orientation
 from spinalcordtoolbox.utils import parse_num_list
 from spinalcordtoolbox.template import get_slices_from_vertebral_levels
 
-# TODO: rename metrics --> aggregate_slicewise
-# TODO:
 
 def average_per_slice_or_level(metrics, header='', slices='', perslice=1, vert_levels='', perlevel=0,
                                fname_vert_levels='', file_out='metrics', overwrite=1):

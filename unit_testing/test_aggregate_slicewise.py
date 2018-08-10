@@ -22,10 +22,6 @@ def dummy_vert_level():
                            orientation="RPI",
                            dim=nii.header.get_data_shape(),
                            )
-    # im_vert_level = Image
-    # im_vert_level.data = data
-    # im_vert_level.dim = (im_vert_level.data.shape[0], im_vert_level.data.shape[1], im_vert_level.data.shape[2], 1,
-    #                      1, 1, 1, 1)
     return img
 
 
@@ -38,6 +34,6 @@ def test_aggregate_per_slice_or_level(dummy_vert_level):
                                                                    perlevel=True, im_vert_level=dummy_vert_level,
                                                                    group_funcs=group_funcs)
     assert agg_metrics == {'metric1':
-                               {2: {'std': 0.81649658092772603, 'mean': 2.0},
-                                3: {'std': 0.81649658092772603, 'mean': 5.0},
-                                4: {'std': 0.81649658092772603, 'mean': 8.0}}}
+                               {(0, 1, 2): {'std': 0.81649658092772603, 'VertLevel': (2,), 'mean': 2.0},
+                                (3, 4, 5): {'std': 0.81649658092772603, 'VertLevel': (3,), 'mean': 5.0},
+                                (6, 7, 8): {'std': 0.81649658092772603, 'VertLevel': (4,), 'mean': 8.0}}}

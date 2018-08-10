@@ -4,7 +4,9 @@
 
 from msct_image import Image
 import numpy as np
+import nibabel as nib
 import pytest
+import msct_image
 from spinalcordtoolbox import aggregate_slicewise
 
 @pytest.fixture(scope="session")
@@ -14,11 +16,17 @@ def dummy_vert_level():
     data = np.zeros((nx, ny, nz))
     # define vertebral level for each slice as a pixel at the center of the image
     data[4, 4, :] = [2, 2, 2, 3, 3, 3, 4, 4, 4]
-    im_vert_level = Image
-    im_vert_level.data = data
-    im_vert_level.dim = (im_vert_level.data.shape[0], im_vert_level.data.shape[1], im_vert_level.data.shape[2], 1,
-                         1, 1, 1, 1)
-    return im_vert_level
+    affine = np.eye(4)
+    nii = nib.nifti1.Nifti1Image(data, affine)
+    img = msct_image.Image(nii.get_data(), hdr=nii.header,
+                           orientation="RPI",
+                           dim=nii.header.get_data_shape(),
+                           )
+    # im_vert_level = Image
+    # im_vert_level.data = data
+    # im_vert_level.dim = (im_vert_level.data.shape[0], im_vert_level.data.shape[1], im_vert_level.data.shape[2], 1,
+    #                      1, 1, 1, 1)
+    return img
 
 
 # noinspection 801,PyShadowingNames

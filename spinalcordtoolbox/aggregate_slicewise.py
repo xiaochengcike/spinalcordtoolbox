@@ -4,6 +4,7 @@
 
 import numpy as np
 import sct_utils as sct
+import msct_image
 from spinalcordtoolbox.utils import parse_num_list
 from spinalcordtoolbox.template import get_slices_from_vertebral_levels
 
@@ -45,7 +46,7 @@ def aggregate_per_slice_or_level(metrics, slices=[], levels=[], perslice=True, p
 
     # if user selected vertebral levels
     if levels:
-        im_vert_level.change_orientation(orientation='RPI')  # last dim should be k
+        im_vert_level.change_orientation("RPI")  # last dim should be k
 
         if perlevel:
             # XXX

@@ -12,6 +12,8 @@ from msct_types import Centerline
 from spinalcordtoolbox.centerline import optic
 from spinalcordtoolbox.aggregate_slicewise import average_per_slice_or_level
 
+# TODO: only use logging, don't use printing, pass images, not filenames, do imports at beginning of file, no chdir()
+
 # on v3.2.2 and earlier, the following volumes were output by default, which was a waste of time (people don't use it)
 OUTPUT_CSA_VOLUME = 0
 OUTPUT_ANGLE_VOLUME = 0

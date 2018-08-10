@@ -28,21 +28,21 @@ def aggregate_per_slice_or_level(metrics, slices=[], levels=[], perslice=True, p
     # TODO: move the parse_num_list to the front-end
     agg_metrics = dict((metric, ()) for metric in metrics.keys())
 
-    nz = len(metrics[0])  # retrieve number of slices from the first metric (assuming they all have the same shape)
-    if slices:
-        # if user specified slices of interest, convert to comma-separated string: '2:5,6' -> '2,3,4,5,6'
-        list_slices = parse_num_list(slices)
-    else:
-        # if no slices is specified, use all slices in the image
-        list_slices = np.arange(nz).tolist()
-    list_slices.reverse()  # more intuitive to list slices in descending mode (i.e. from head to toes)
+    # # nz = len(metrics[0])  # retrieve number of slices from the first metric (assuming they all have the same shape)
+    # if slices:
+    #     # if user specified slices of interest, convert to comma-separated string: '2:5,6' -> '2,3,4,5,6'
+    #     list_slices = parse_num_list(slices)
+    # else:
+    #     # if no slices is specified, use all slices in the image
+    #     list_slices = np.arange(nz).tolist()
+    # list_slices.reverse()  # more intuitive to list slices in descending mode (i.e. from head to toes)
     # if perslice with slices: ['1', '2', '3', '4']
     # important: each slice number should be separated by "," not ":"
-    slicegroups = [str(i) for i in list_slices]
+    # slicegroups = [str(i) for i in list_slices]
     # if user does not want to output metric per slice, then create a single element in slicegroups
-    if not perslice:
+    # if not perslice:
         # ['1', '2', '3', '4'] -> ['1,2,3,4']
-        slicegroups = [','.join(slicegroups)]
+        # slicegroups = [','.join(slicegroups)]
 
     # if user selected vertebral levels
     if levels:
@@ -56,7 +56,7 @@ def aggregate_per_slice_or_level(metrics, slices=[], levels=[], perslice=True, p
             # get slices corresponding to levels
             # TODO: the thing below is ugly-- there must be a better way
             slicegroups = [get_slices_from_vertebral_levels(im_vert_level, level) for level in levels]
-            slices = [val for sublist in list_slices for val in sublist]  # flatten list_slices
+            # slices = [val for sublist in list_slices for val in sublist]  # flatten list_slices
 
         # Re-define slices_of_interest according to the vertebral levels selected by user
         list_levels = parse_num_list(levels)

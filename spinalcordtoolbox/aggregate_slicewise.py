@@ -26,7 +26,7 @@ def aggregate_per_slice_or_level(metrics, slices=[], levels=[], perslice=True, p
     # TODO: remove the csv writing part from this function and create wrapper average_per_slice_or_level_to_file().
     # TODO: check last dimension is S-I
     # TODO: move the parse_num_list to the front-end
-    # agg_metrics = dict((metric, ()) for metric in metrics.keys())
+    # Create a dictionary for the output aggregated metrics
     agg_metrics = dict((metric, dict()) for metric in metrics.keys())
     # # nz = len(metrics[0])  # retrieve number of slices from the first metric (assuming they all have the same shape)
     # if slices:
@@ -58,6 +58,12 @@ def aggregate_per_slice_or_level(metrics, slices=[], levels=[], perslice=True, p
             slicegroups = [tuple([val for sublist in slicegroups for val in sublist])]  # flatten list_slices
             # vertgroups = [(2, 3, 4)]
             vertgroups = [tuple([level for level in levels])]
+    # else:
+    #     vertgroups = None
+    #     if perslice:
+
+
+
         #
         # # Re-define slices_of_interest according to the vertebral levels selected by user
         # list_levels = parse_num_list(levels)
@@ -92,12 +98,11 @@ def aggregate_per_slice_or_level(metrics, slices=[], levels=[], perslice=True, p
             # vertgroup = vertgroup.replace(",", ";")
             # # encode slice and levels
 
-            # add level info
-            agg_metrics['VertLevel'][slicegroup] = vertgroups[slicegroups.index(slicegroup)]
-
             for metric in metrics.keys():
                 metric_data = [metrics[metric][slice] for slice in slicegroup]
                 agg_metrics[metric][slicegroup] = dict((name, func(metric_data)) for (name, func) in group_funcs)
+                # add level info
+                agg_metrics[metric][slicegroup]["VertLevel"] = vertgroups[slicegroups.index(slicegroup)]
         except IndexError:
             sct.log.warning('The slice request is out of the range of the image')
     return agg_metrics

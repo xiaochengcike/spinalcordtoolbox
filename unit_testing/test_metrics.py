@@ -32,6 +32,7 @@ def dummy_segmentation():
     xform = np.eye(4)
     img = nib.nifti1.Nifti1Image(data_rot, xform)
     nib.save(img, fname_seg)
+    #TODO: return img instead
     return fname_seg
 
 

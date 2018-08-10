@@ -22,14 +22,13 @@ def dummy_vert_level():
 
 
 # noinspection 801,PyShadowingNames
-def test_aggregate_metrics_by_vertebral_level(dummy_vert_level):
+def test_aggregate_per_slice_or_level(dummy_vert_level):
     """Test extraction of metrics aggregation across vertebral levels"""
     group_funcs = (('mean', np.mean), ('std', np.std))
     metrics = {'metric1': [1, 2, 3, 4, 5, 6, 7, 8, 9]}
-    levels = [2, 3, 4]
-    im_vert_levels = dummy_vert_level
-    agg_metrics = aggregate_slicewise.aggregate_metrics_by_vertebral_level(metrics, im_vert_levels, levels,
-                                                                           group_funcs=group_funcs)
+    agg_metrics = aggregate_slicewise.aggregate_per_slice_or_level(metrics, slices=[], levels=[2, 3, 4], perslice=False,
+                                                                   perlevel=False, im_vert_level=dummy_vert_level,
+                                                                   group_funcs=group_funcs)
     assert agg_metrics == {'metric1':
                                {2: {'std': 0.81649658092772603, 'mean': 2.0},
                                 3: {'std': 0.81649658092772603, 'mean': 5.0},

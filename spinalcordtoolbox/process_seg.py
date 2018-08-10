@@ -331,7 +331,7 @@ def compute_csa(segmentation, overwrite, verbose, remove_temp_files, slices, ver
     # prepare output
     metrics = [csa, angles]
     headers = ['CSA [mm^2]', 'Angle between cord and S-I direction [deg]']
-    # return metrics, headers 
+    # return metrics, headers
 
     # write output file
     # TODO: do in parent function

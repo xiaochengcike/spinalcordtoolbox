@@ -92,14 +92,14 @@ def aggregate_metrics_by_vertebral_level(metrics, im_vert_levels, levels, group_
     :return: TODO
     """
     if group_funcs is None:
-        group_funcs = (('mean': np.mean),)
+        group_funcs = (('mean', np.mean),)
     out = dict((metric, dict()) for metric in metrics.keys())
     for level in levels:
-        idx_slices = get_slice_indices_from_vertebral_levels(im_vertebral_labeling, level)
-    for metric in metrics.keys():
-        metric_data = metrics[metric]
-        level_data = [ metric_data[idx_slice] for idx_slice in idx_slices if 0 <= idx_slice < len(metric_data) ]
-    if not level_data:
-        break
-    out[metric][level] = dict((name, func(level_data)) for (name, func) in group_funcs)
+        idx_slices = get_slices_from_vertebral_levels(im_vert_levels, level)
+        for metric in metrics.keys():
+            metric_data = metrics[metric]
+            level_data = [ metric_data[idx_slice] for idx_slice in idx_slices if 0 <= idx_slice < len(metric_data) ]
+            if not level_data:
+                break
+            out[metric][level] = dict((name, func(level_data)) for (name, func) in group_funcs)
     return out

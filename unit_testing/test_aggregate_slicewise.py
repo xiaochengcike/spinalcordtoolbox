@@ -9,6 +9,7 @@ import pytest
 import msct_image
 from spinalcordtoolbox import aggregate_slicewise
 
+
 @pytest.fixture(scope="session")
 def dummy_vert_level():
     """Create a dummy image representing vertebral labeling."""
@@ -26,14 +27,53 @@ def dummy_vert_level():
 
 
 # noinspection 801,PyShadowingNames
-def test_aggregate_per_slice_or_level(dummy_vert_level):
+def test_aggregate_across_slices(dummy_vert_level):
+    """Test extraction of metrics aggregation across slices"""
+    group_funcs = (('mean', np.mean), ('std', np.std))
+    metrics = {'metric1': [1, 2, 3, 4, 5, 6, 7, 8, 9]}
+    agg_metrics = aggregate_slicewise.aggregate_per_slice_or_level(metrics, slices=[0, 1, 5], perslice=False,
+                                                                   im_vert_level=dummy_vert_level,
+                                                                   group_funcs=group_funcs)
+    assert agg_metrics == {'metric1':
+                               {(0, 1, 5): {'std': pytest.approx(2.16, abs=1e-2), 'VertLevel': None, 'mean': 3.0}}}
+
+
+# noinspection 801,PyShadowingNames
+def test_aggregate_per_slice(dummy_vert_level):
+    """Test extraction of metrics aggregation per slice"""
+    group_funcs = (('mean', np.mean), ('std', np.std))
+    metrics = {'metric1': [1, 2, 3, 4, 5, 6, 7, 8, 9]}
+    agg_metrics = aggregate_slicewise.aggregate_per_slice_or_level(metrics, slices=[0, 1, 5], perslice=True,
+                                                                   im_vert_level=dummy_vert_level,
+                                                                   group_funcs=group_funcs)
+    assert agg_metrics == {'metric1':
+                               {(5,): {'std': 0.0, 'VertLevel': None, 'mean': 6.0},
+                                (0,): {'std': 0.0, 'VertLevel': None, 'mean': 1.0},
+                                (1,): {'std': 0.0, 'VertLevel': None, 'mean': 2.0}}}
+
+
+# noinspection 801,PyShadowingNames
+def test_aggregate_per_level(dummy_vert_level):
+    """Test extraction of metrics aggregation per vertebral level"""
+    group_funcs = (('mean', np.mean), ('std', np.std))
+    metrics = {'metric1': [1, 2, 3, 4, 5, 6, 7, 8, 9]}
+    agg_metrics = aggregate_slicewise.aggregate_per_slice_or_level(metrics, levels=[2, 3, 4], perlevel=True,
+                                                                   im_vert_level=dummy_vert_level,
+                                                                   group_funcs=group_funcs)
+    assert agg_metrics == {'metric1':
+                               {(0, 1, 2): {'std': pytest.approx(0.81, abs=1e-2), 'VertLevel': (2,), 'mean': 2.0},
+                                (3, 4, 5): {'std': pytest.approx(0.81, abs=1e-2), 'VertLevel': (3,), 'mean': 5.0},
+                                (6, 7, 8): {'std': pytest.approx(0.81, abs=1e-2), 'VertLevel': (4,), 'mean': 8.0}}}
+
+
+# noinspection 801,PyShadowingNames
+def test_aggregate_across_levels(dummy_vert_level):
     """Test extraction of metrics aggregation across vertebral levels"""
     group_funcs = (('mean', np.mean), ('std', np.std))
     metrics = {'metric1': [1, 2, 3, 4, 5, 6, 7, 8, 9]}
-    agg_metrics = aggregate_slicewise.aggregate_per_slice_or_level(metrics, slices=[], levels=[2, 3, 4], perslice=False,
-                                                                   perlevel=True, im_vert_level=dummy_vert_level,
+    agg_metrics = aggregate_slicewise.aggregate_per_slice_or_level(metrics, levels=[2, 3, 4], perlevel=False,
+                                                                   im_vert_level=dummy_vert_level,
                                                                    group_funcs=group_funcs)
     assert agg_metrics == {'metric1':
-                               {(0, 1, 2): {'std': 0.81649658092772603, 'VertLevel': (2,), 'mean': 2.0},
-                                (3, 4, 5): {'std': 0.81649658092772603, 'VertLevel': (3,), 'mean': 5.0},
-                                (6, 7, 8): {'std': 0.81649658092772603, 'VertLevel': (4,), 'mean': 8.0}}}
+                               {(0, 1, 2, 3, 4, 5, 6, 7, 8):
+                                    {'std': pytest.approx(2.58, abs=1e-2), 'VertLevel': (2, 3, 4), 'mean': 5.0}}}

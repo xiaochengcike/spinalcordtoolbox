@@ -4,7 +4,6 @@
 
 import numpy as np
 import sct_utils as sct
-from sct_image import Image, set_orientation
 from spinalcordtoolbox.utils import parse_num_list
 from spinalcordtoolbox.template import get_slices_from_vertebral_levels
 

@@ -23,7 +23,7 @@ import tqdm
 from scipy.ndimage import map_coordinates
 from skimage import measure, filters
 import matplotlib.pyplot as plt
-from sct_image import Image, set_orientation
+import msct_image
 from msct_types import Centerline
 from sct_straighten_spinalcord import smooth_centerline
 
@@ -162,19 +162,19 @@ def compute_properties_along_centerline(im_seg, smooth_factor=5.0, interpolation
     curdir = os.getcwd()
     os.chdir(path_tmp)
 
-    # fname_segmentation = os.path.abspath(fname_seg_image)
-    # path_data, file_data, ext_data = sct.extract_fname(fname_segmentation)
+    im_seg.change_orientation("RPI", generate_path=True).save(path_tmp, mutable=True)
+    fname_segmentation_orient = im_seg.absolutepath
 
-    # Change orientation of the input centerline into RPI
-    sct.printv('\nOrient centerline to RPI orientation...', verbose)
-    # im_seg = Image(file_data + ext_data)
-    fname_segmentation_orient = 'segmentation_rpi.nii.gz'
-    image = set_orientation(im_seg, 'RPI')
-    image.setFileName(fname_segmentation_orient)
-    image.save()
+    # # Change orientation of the input centerline into RPI
+    # sct.printv('\nOrient centerline to RPI orientation...', verbose)
+    # # im_seg = Image(file_data + ext_data)
+    # fname_segmentation_orient = 'segmentation_rpi.nii.gz'
+    # image = set_orientation(im_seg, 'RPI')
+    # image.setFileName(fname_segmentation_orient)
+    # image.save()
 
     # Initiating some variables
-    nx, ny, nz, nt, px, py, pz, pt = image.dim
+    nx, ny, nz, nt, px, py, pz, pt = im_seg.dim
     resolution = 0.5
     properties = {key: [] for key in property_list}
     properties['incremental_length'] = []
@@ -198,7 +198,7 @@ def compute_properties_along_centerline(im_seg, smooth_factor=5.0, interpolation
         for index in range(centerline.number_of_points):
             # value_out = -5.0
             value_out = 0.0
-            current_patch = centerline.extract_perpendicular_square(image, index, resolution=resolution,
+            current_patch = centerline.extract_perpendicular_square(im_seg, index, resolution=resolution,
                                                                     interpolation_mode=interpolation_mode,
                                                                     border='constant', cval=value_out)
 
@@ -220,11 +220,11 @@ def compute_properties_along_centerline(im_seg, smooth_factor=5.0, interpolation
             # loop across properties and assign values for function output
             if sc_properties is not None:
                 properties['incremental_length'].append(centerline.incremental_length[index])
-                properties['z_slice'].append(image.transfo_phys2pix([centerline.points[index]])[0][2])
+                properties['z_slice'].append(im_seg.transfo_phys2pix([centerline.points[index]])[0][2])
                 for property_name in property_list:
                     properties[property_name].append(sc_properties[property_name])
             else:
-                c = image.transfo_phys2pix([centerline.points[index]])[0]
+                c = im_seg.transfo_phys2pix([centerline.points[index]])[0]
                 sct.printv('WARNING: no properties for slice', c[2])
 
             pbar.update(1)

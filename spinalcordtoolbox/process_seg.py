@@ -5,12 +5,12 @@
 import os, math
 import numpy as np
 import sct_utils as sct
-from sct_image import Image, set_orientation
+import msct_image
 from sct_straighten_spinalcord import smooth_centerline
 import msct_shape
 from msct_types import Centerline
 from spinalcordtoolbox.centerline import optic
-from spinalcordtoolbox.aggregate_slicewise import average_per_slice_or_level
+from spinalcordtoolbox.aggregate_slicewise import aggregate_per_slice_or_level
 
 # TODO: only use logging, don't use printing, pass images, not filenames, do imports at beginning of file, no chdir()
 
@@ -46,18 +46,17 @@ def compute_length(fname_segmentation, remove_temp_files, output_folder, overwri
     os.chdir(path_tmp)
 
     # Change orientation of the input centerline into RPI
-    sct.printv('\nOrient centerline to RPI orientation...', param.verbose)
-    im_seg = Image(file_data + ext_data)
-    fname_segmentation_orient = 'segmentation_rpi' + ext_data
-    im_seg_orient = set_orientation(im_seg, 'RPI')
-    im_seg_orient.setFileName(fname_segmentation_orient)
-    im_seg_orient.save()
+    sct.printv('\nOrient centerline to RPI orientation...', verbose)
+    im_seg = msct_image.Image(file_data + ext_data) \
+        .change_orientation("RPI", generate_path=True) \
+        .save(path_tmp, mutable=True)
+    fname_segmentation_orient = im_seg.absolutepath
 
     # Get dimension
-    sct.printv('\nGet dimensions...', param.verbose)
-    nx, ny, nz, nt, px, py, pz, pt = im_seg_orient.dim
-    sct.printv('.. matrix size: ' + str(nx) + ' x ' + str(ny) + ' x ' + str(nz), param.verbose)
-    sct.printv('.. voxel size:  ' + str(px) + 'mm x ' + str(py) + 'mm x ' + str(pz) + 'mm', param.verbose)
+    sct.printv('\nGet dimensions...', verbose)
+    nx, ny, nz, nt, px, py, pz, pt = im_seg.dim
+    sct.printv('.. matrix size: ' + str(nx) + ' x ' + str(ny) + ' x ' + str(nz), verbose)
+    sct.printv('.. voxel size:  ' + str(px) + 'mm x ' + str(py) + 'mm x ' + str(pz) + 'mm', verbose)
 
     # smooth segmentation/centerline
     x_centerline_fit, y_centerline_fit, z_centerline, x_centerline_deriv, y_centerline_deriv, z_centerline_deriv = smooth_centerline(
@@ -78,7 +77,7 @@ def compute_length(fname_segmentation, remove_temp_files, output_folder, overwri
             sct.printv('Selected vertebral levels... ' + vert_levels)
 
             # convert the vertebral labeling file to RPI orientation
-            im_vertebral_labeling = Image(fname_vertebral_labeling)
+            im_vertebral_labeling = msct_image.Image(fname_vertebral_labeling)
             im_vertebral_labeling.change_orientation(orientation='RPI')
 
             # get the slices corresponding to the vertebral levels
@@ -171,17 +170,17 @@ def compute_csa(segmentation, overwrite, verbose, remove_temp_files, slices, ver
     :param use_phys_coord:
     :param file_out:
     """
-    im_seg = Image(segmentation)
-
-    # TODO: do everything in RAM instead of adding unecessary i/o. For that we need a wrapper for smooth_centerline()
     # create temporary folder
     path_tmp = sct.tmp_create()
+    # open image, reorient as RPI and save in temp folder
+    im_seg = msct_image.Image(segmentation).save(path_tmp, )
+
+    # TODO: do everything in RAM instead of adding unecessary i/o. For that we need a wrapper for smooth_centerline()
     # change orientation to RPI
     im_seg.change_orientation('RPI')
     nx, ny, nz, nt, px, py, pz, pt = im_seg.dim
     fname_seg = os.path.join(path_tmp, 'segmentation_RPI.nii.gz')
-    im_seg.setFileName(fname_seg)
-    im_seg.save()
+    im_seg.save(fname_seg)
 
     # # Extract min and max index in Z direction
     data_seg = im_seg.data
@@ -336,9 +335,9 @@ def compute_csa(segmentation, overwrite, verbose, remove_temp_files, slices, ver
 
     # write output file
     # TODO: do in parent function
-    average_per_slice_or_level(metrics, header=headers,
-                               slices=slices, perslice=perslice, vert_levels=vert_levels, perlevel=perlevel,
-                               fname_vert_levels=fname_vert_levels, file_out=file_out, overwrite=overwrite)
+    aggregate_per_slice_or_level(metrics, header=headers,
+                                 slices=slices, perslice=perslice, vert_levels=vert_levels, perlevel=perlevel,
+                                 fname_vert_levels=fname_vert_levels, file_out=file_out, overwrite=overwrite)
 
 
 def compute_shape(segmentation, slices='', vert_levels='', fname_vert_levels='', perslice=0, perlevel=0,
@@ -360,7 +359,7 @@ def compute_shape(segmentation, slices='', vert_levels='', fname_vert_levels='',
     :param verbose:
     :return:
     """
-    im_seg = Image(segmentation)
+    im_seg = msct_image.Image(segmentation)
 
     shape_properties = msct_shape.compute_properties_along_centerline(im_seg=im_seg,
                                                                       smooth_factor=0.0,
@@ -402,16 +401,13 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fi
     # TODO: centerline coordinate should have the same orientation as the input image
     # TODO: no need for unecessary i/o. Everything could be done in RAM
 
-    # Open segmentation volume
-    im_seg = Image(fname_segmentation)
-    # Change orientation
-    native_orientation = im_seg.change_orientation('RPI')
-    # Save as temp file
+    # Create temp folder
     path_tmp = sct.tmp_create()
-    fname_tmp_seg = os.path.join(path_tmp, 'fname_tmp_seg.nii.gz')
-    im_seg.setFileName(fname_tmp_seg)
-    im_seg.save()
-    data = im_seg.data
+    # Open segmentation volume
+    im_seg = msct_image.Image(fname_segmentation)
+    native_orientation = im_seg.orientation
+    im_seg.change_orientation("RPI", generate_path=True).save(path_tmp, mutable=True)
+    fname_tmp_seg = im_seg.absolutepath
 
     # extract centerline and smooth it
     if use_phys_coord:
@@ -488,9 +484,7 @@ def extract_centerline(fname_segmentation, remove_temp_files, verbose=0, algo_fi
     im_centerline.change_orientation(native_orientation)
     # save nifti volume
     fname_centerline = file_out + '.nii.gz'
-    im_centerline.setFileName(fname_centerline)
-    im_centerline.changeType('uint8')
-    im_centerline.save()
+    im_centerline.save(fname_centerline, dtype='uint8')
     # display stuff
     sct.display_viewer_syntax([fname_segmentation, fname_centerline], colormaps=['gray', 'green'])
 
@@ -526,9 +520,7 @@ def label_vert(fname_seg, fname_label, fname_out='', verbose=1):
     :return:
     """
     # Open labels
-    im_disc = Image(fname_label)
-    # Change the orientation to RPI so that the z axis corresponds to the superior-to-inferior axis
-    im_disc.change_orientation('RPI')
+    im_disc = msct_image.Image(fname_label).change_orientation("RPI")
     # retrieve all labels
     coord_label = im_disc.getNonZeroCoordinates()
     # compute list_disc_z and list_disc_value

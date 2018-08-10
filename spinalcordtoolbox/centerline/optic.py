@@ -7,8 +7,10 @@
 import os, datetime
 import nibabel as nib
 import numpy as np
+
 import sct_utils as sct
-from sct_image import orientation
+import sct_image
+import msct_image
 from msct_image import Image
 
 
@@ -43,6 +45,7 @@ def centerline2roi(fname_image, folder_output='./', verbose=0):
     coordinates_centerline = im.getNonZeroCoordinates(sorting='z')
 
     f = open(fname_output, "w")
+    sct.printv('\nWriting ROI file...', verbose)
 
     for coord in coordinates_centerline:
         coord_phys_center = im.transfo_pix2phys([[(nx - 1) / 2.0, (ny - 1) / 2.0, coord.z]])[0]
@@ -54,7 +57,6 @@ def centerline2roi(fname_image, folder_output='./', verbose=0):
                                     position_y=coord_phys_center[1] - coord_phys[1]))
 
     f.close()
-    sct.printv('\nGenerated ROI file: ' + fname_output, verbose)
 
     if os.path.abspath(folder_output) != os.getcwd():
         sct.copy(fname_output, folder_output)
@@ -82,7 +84,7 @@ def detect_centerline(image_fname, contrast_type,
     path_data, file_data, ext_data = sct.extract_fname(image_fname)
 
     sct.printv('Detecting the spinal cord using OptiC', verbose=verbose)
-    image_input_orientation = orientation(image_input, get=True, verbose=False)
+    image_input_orientation = image_input.orientation
 
     temp_folder = sct.TempFolder()
     temp_folder.copy_from(image_fname)
@@ -103,9 +105,7 @@ def detect_centerline(image_fname, contrast_type,
     img_int16.data = data_rescaled - (data_rescaled.min() - min_out)
 
     # change data type
-    img_int16.changeType('uint16')
-    img_int16.setFileName(image_int_filename)
-    img_int16.save()
+    img_int16.save(image_int_filename, dtype=np.uint16)
     del img, img_int16
 
     # reorient the input image to RPI + convert to .nii
@@ -155,9 +155,9 @@ def detect_centerline(image_fname, contrast_type,
     sct.copy(centerline_optic_filename, folder_output_from_temp)
 
     if output_roi:
-        centerline2roi(fname_image=centerline_optic_RPI_filename,
-                       folder_output=folder_output_from_temp,
-                       verbose=verbose)
+        fname_roi_centerline = centerline2roi(fname_image=centerline_optic_RPI_filename,
+                                              folder_output=folder_output_from_temp,
+                                              verbose=verbose)
 
         # Note: the .roi file is defined in RPI orientation. To be used, it must be applied on the original image with
         # a RPI orientation. For this reason, this script also outputs the input image in RPI orientation

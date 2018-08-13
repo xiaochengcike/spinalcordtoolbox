@@ -55,16 +55,11 @@ def test_extract_centerline(dummy_segmentation):
 # noinspection 801,PyShadowingNames
 def test_compute_csa(dummy_segmentation):
     """Test computation of cross-sectional area from input segmentation"""
-    process_seg.compute_csa(dummy_segmentation, 1, 1, 1, '5:15', '', fname_vert_levels='', perslice=0,
-                            perlevel=0, algo_fitting='hanning', type_window='hanning', window_length=10,
-                            angle_correction=True, use_phys_coord=True, file_out='csa')
-    # open created csv file
-    with open('csa.csv', 'rb') as f:
-        reader = csv.reader(f)
-        reader.next()  # skip header
-        csa_out, angle_out = [float(i) for i in reader.next()[2:]]
-    assert csa_out == pytest.approx(45.107, abs=1e-3)
-    assert angle_out == pytest.approx(15.144, abs=1e-3)
+    metrics = process_seg.compute_csa(dummy_segmentation, 1, 1, 1, '5:15', '', fname_vert_levels='', perslice=0,
+                                      perlevel=0, algo_fitting='hanning', type_window='hanning', window_length=10,
+                                      angle_correction=True, use_phys_coord=True, file_out='csa')
+    assert np.mean(metrics['CSA [mm^2]'][5:15]) == pytest.approx(45, abs=1e-3)
+    assert np.mean(metrics['Angle between cord axis and z [deg]'][5:15]) == pytest.approx(15, abs=1e-3)
 
 
 # noinspection 801,PyShadowingNames

@@ -329,15 +329,9 @@ def compute_csa(segmentation, overwrite, verbose, remove_temp_files, slices, ver
         sct.rmtree(path_tmp)
 
     # prepare output
-    metrics = [csa, angles]
-    headers = ['CSA [mm^2]', 'Angle between cord and S-I direction [deg]']
-    # return metrics, headers
-
-    # write output file
-    # TODO: do in parent function
-    aggregate_per_slice_or_level(metrics, header=headers,
-                                 slices=slices, perslice=perslice, vert_levels=vert_levels, perlevel=perlevel,
-                                 fname_vert_levels=fname_vert_levels, file_out=file_out, overwrite=overwrite)
+    metrics = {'CSA [mm^2]': csa,
+               'Angle between cord axis and z [deg]': angles}
+    return metrics
 
 
 def compute_shape(segmentation, slices='', vert_levels='', fname_vert_levels='', perslice=0, perlevel=0,

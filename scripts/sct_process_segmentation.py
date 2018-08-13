@@ -25,9 +25,12 @@
 # TODO: the import of scipy.misc imsave was moved to the specific cases (orth and ellipse) in order to avoid issue #62. This has to be cleaned in the future.
 
 import sys, os
+import numpy as np
 import sct_utils as sct
 from msct_parser import Parser
 from spinalcordtoolbox import process_seg
+from spinalcordtoolbox.aggregate_slicewise import aggregate_per_slice_or_level
+from spinalcordtoolbox import save_struct
 
 
 class Param:
@@ -179,6 +182,7 @@ def main(args):
     slices = param.slices
     angle_correction = True
     use_phys_coord = True
+    group_funcs = (('mean', np.mean), ('std', np.std))  # functions to perform when aggregating metrics along S-I
 
     fname_segmentation = arguments['-i']
     name_process = arguments['-p']
@@ -238,15 +242,16 @@ def main(args):
                                        file_out=file_out)
 
     if name_process == 'csa':
-        metrics = process_seg.compute_csa(fname_segmentation, overwrite, verbose, remove_temp_files, slices,
-                                          vert_levels, fname_vert_levels=fname_vert_levels, perslice=perslice,
-                                          perlevel=perlevel, algo_fitting=param.algo_fitting,
+        metrics = process_seg.compute_csa(fname_segmentation, algo_fitting=param.algo_fitting,
                                           type_window=param.type_window, window_length=param.window_length,
                                           angle_correction=angle_correction, use_phys_coord=use_phys_coord,
-                                          file_out=file_out)
+                                          remove_temp_files=remove_temp_files, verbose=verbose)
 
-        aggregate_per_slice_or_level(metrics, slices=slices, levels=lev, perslice=True, perlevel=False, im_vert_level=None,
-                                 group_funcs=(('mean', np.mean),)):
+        metrics_agg = aggregate_per_slice_or_level(metrics, slices=slices, levels=vert_levels, perslice=perslice,
+                                                   perlevel=perlevel, im_vert_level=fname_vert_levels,
+                                                   group_funcs=group_funcs)
+
+        fname_metrics = save_struct.save_as_csv(metrics_agg, fname_out)
 
 
     if name_process == 'label-vert':

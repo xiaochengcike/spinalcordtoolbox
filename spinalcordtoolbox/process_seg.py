@@ -147,28 +147,17 @@ def compute_length(fname_segmentation, remove_temp_files, output_folder, overwri
     return length
 
 
-def compute_csa(segmentation, overwrite, verbose, remove_temp_files, slices, vert_levels,
-                fname_vert_levels='', perslice=0, perlevel=0, algo_fitting='hanning',
-                type_window='hanning', window_length=80, angle_correction=True, use_phys_coord=True,
-                file_out='csa'):
+def compute_csa(segmentation, algo_fitting='hanning', type_window='hanning', window_length=80, angle_correction=True,
+                use_phys_coord=True, remove_temp_files=1, verbose=1):
     """
     Compute CSA.
     Note: segmentation can be binary or weighted for partial volume effect.
     :param segmentation: input segmentation. Could be either an Image or a file name.
-    :param overwrite:
-    :param verbose:
-    :param remove_temp_files:
-    :param slices:
-    :param vert_levels:
-    :param fname_vert_levels:
-    :param perslice:
-    :param perlevel:
     :param algo_fitting:
     :param type_window:
     :param window_length:
     :param angle_correction:
     :param use_phys_coord:
-    :param file_out:
     """
     # create temporary folder
     path_tmp = sct.tmp_create()

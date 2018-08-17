@@ -226,6 +226,7 @@ def register(param, file_src, file_dest, file_mat, file_out, im_mask=None):
         metric_radius = '4'
     file_out_concat = file_out
 
+    kw = dict()
     im_data = Image(file_src)  # TODO: pass argument to use antsReg instead of opening Image each time
 
     # register file_src to file_dest
@@ -268,7 +269,8 @@ def register(param, file_src, file_dest, file_mat, file_out, im_mask=None):
                 cmd += ['--mask', im_mask.absolutepath]
         # run command
         if do_registration:
-            status, output = sct.run(cmd, verbose=0)
+            kw.update(dict(is_sct_binary=True))
+            status, output = sct.run(cmd, verbose=0, **kw)
 
     elif param.todo == 'apply':
         sct_apply_transfo.main(args=['-i', file_src,

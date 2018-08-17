@@ -292,7 +292,7 @@ class MultiLabelRegistration:
             # put the result and the reference in the same space using a registration with ANTs with no iteration:
             corrected_manual_gmseg = file_manual_gmseg + '_in_old_template_space' + ext_manual_gmseg
             # TODO
-            sct.run('isct_antsRegistration -d 3 -t Translation[0] -m MI[' + fname_old_template_gm + ',' + file_manual_gmseg + ext_manual_gmseg + ',1,16] -o [reg_ref_to_res,' + corrected_manual_gmseg + '] -n BSpline[3] -c 0 -f 1 -s 0')
+            sct.run('isct_antsRegistration -d 3 -t Translation[0] -m MI[' + fname_old_template_gm + ',' + file_manual_gmseg + ext_manual_gmseg + ',1,16] -o [reg_ref_to_res,' + corrected_manual_gmseg + '] -n BSpline[3] -c 0 -f 1 -s 0', is_sct_binary=True)
             # sct.run('sct_maths -i '+corrected_manual_gmseg+' -thr 0.1 -o '+corrected_manual_gmseg)
             sct.run(['sct_maths', '-i', corrected_manual_gmseg, '-bin', '0.1', '-o', corrected_manual_gmseg])
             status_old_gm, output_old_gm = sct.run(['sct_dice_coefficient', '-i', corrected_manual_gmseg, '-d', fname_old_template_gm, '-2d-slices', '2'])
@@ -304,7 +304,7 @@ class MultiLabelRegistration:
             path_manual_wmseg, file_manual_wmseg, ext_manual_wmseg = sct.extract_fname(fname_manual_wmseg)
             corrected_manual_wmseg = file_manual_wmseg + '_in_old_template_space' + ext_manual_wmseg
             # TODO
-            sct.run('isct_antsRegistration -d 3 -t Translation[0] -m MI[' + fname_old_template_wm + ',' + fname_manual_wmseg + ',1,16] -o [reg_ref_to_res,' + corrected_manual_wmseg + '] -n BSpline[3] -c 0 -f 1 -s 0')
+            sct.run('isct_antsRegistration -d 3 -t Translation[0] -m MI[' + fname_old_template_wm + ',' + fname_manual_wmseg + ',1,16] -o [reg_ref_to_res,' + corrected_manual_wmseg + '] -n BSpline[3] -c 0 -f 1 -s 0', is_sct_binary=True)
             # sct.run('sct_maths -i '+corrected_manual_wmseg+' -thr 0.1 -o '+corrected_manual_wmseg)
             sct.run('sct_maths -i ' + corrected_manual_wmseg + ' -bin 0.1 -o ' + corrected_manual_wmseg)
             status_old_wm, output_old_wm = sct.run(['sct_dice_coefficient', '-i', corrected_manual_wmseg, '-d', fname_old_template_wm, '-2d-slices', '2'])
@@ -316,7 +316,7 @@ class MultiLabelRegistration:
             # put the result and the reference in the same space using a registration with ANTs with no iteration:
             corrected_manual_gmseg = file_manual_gmseg + '_in_new_template_space' + ext_manual_gmseg
             # TODO
-            sct.run('isct_antsRegistration -d 3 -t Translation[0] -m MI[' + fname_new_template_gm + ',' + file_manual_gmseg + ext_manual_gmseg + ',1,16] -o [reg_ref_to_res,' + corrected_manual_gmseg + '] -n BSpline[3] -c 0 -f 1 -s 0')
+            sct.run('isct_antsRegistration -d 3 -t Translation[0] -m MI[' + fname_new_template_gm + ',' + file_manual_gmseg + ext_manual_gmseg + ',1,16] -o [reg_ref_to_res,' + corrected_manual_gmseg + '] -n BSpline[3] -c 0 -f 1 -s 0', is_sct_binary=True)
             # sct.run('sct_maths -i '+corrected_manual_gmseg+' -thr 0.1 -o '+corrected_manual_gmseg)
             sct.run(['sct_maths', '-i', corrected_manual_gmseg, '-bin', '0.1', '-o', corrected_manual_gmseg])
             status_new_gm, output_new_gm = sct.run(['sct_dice_coefficient', '-i', corrected_manual_gmseg, '-d', fname_new_template_gm, '-2d-slices', '2'])
@@ -327,7 +327,7 @@ class MultiLabelRegistration:
             # put the result and the reference in the same space using a registration with ANTs with no iteration:
             path_manual_wmseg, file_manual_wmseg, ext_manual_wmseg = sct.extract_fname(fname_manual_wmseg)
             corrected_manual_wmseg = file_manual_wmseg + '_in_new_template_space' + ext_manual_wmseg
-            sct.run('isct_antsRegistration -d 3 -t Translation[0] -m MI[' + fname_new_template_wm + ',' + fname_manual_wmseg + ',1,16] -o [reg_ref_to_res,' + corrected_manual_wmseg + '] -n BSpline[3] -c 0 -f 1 -s 0')
+            sct.run('isct_antsRegistration -d 3 -t Translation[0] -m MI[' + fname_new_template_wm + ',' + fname_manual_wmseg + ',1,16] -o [reg_ref_to_res,' + corrected_manual_wmseg + '] -n BSpline[3] -c 0 -f 1 -s 0', is_sct_binary=True)
             # sct.run('sct_maths -i '+corrected_manual_wmseg+' -thr 0.1 -o '+corrected_manual_wmseg)
             sct.run(['sct_maths', '-i', corrected_manual_wmseg, '-bin', '0.1', '-o', corrected_manual_wmseg])
             status_new_wm, output_new_wm = sct.run(['sct_dice_coefficient', '-i', corrected_manual_wmseg, '-d', fname_new_template_wm, '-2d-slices', '2'])

@@ -546,8 +546,7 @@ def segment_2d(model_fname, contrast_type, input_size, fname_in, fname_out):
         seg_crop.data[:, :, zz] = pred_seg_pp
 
         if 1 in pred_seg_pp:
-            x_cOm, y_cOm = center_of_mass(pred_seg_pp)
-            x_cOm, y_cOm = np.round(x_cOm), np.round(y_cOm)
+            x_cOm, y_cOm = np.int32(np.round(center_of_mass(pred_seg_pp)))
 
     seg_crop.save(fname_out)
 
@@ -621,8 +620,7 @@ def segment_3d(model_fname, contrast_type, fname_in, fname_out):
             for zz_pp in range(z_patch_size):
                 pred_seg_pp = post_processing_slice_wise(pred_seg_th[:, :, zz_pp], x_cOm, y_cOm)
                 pred_seg_th[:, :, zz_pp] = pred_seg_pp
-                x_cOm, y_cOm = center_of_mass(pred_seg_pp)
-                x_cOm, y_cOm = np.round(x_cOm), np.round(y_cOm)
+                x_cOm, y_cOm = np.int32(np.round(center_of_mass(pred_seg_pp)))
 
             if zz == z_step_keep[-1]:
                 out.data[:, :, zz:] = pred_seg_th[:, :, :z_patch_extracted]

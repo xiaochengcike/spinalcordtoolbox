@@ -16,8 +16,6 @@ from __future__ import division, absolute_import
 
 import sys, io, os, shutil
 
-path_sct = os.environ.get("SCT_DIR", os.path.dirname(os.path.dirname(__file__)))
-
 from msct_parser import Parser
 from spinalcordtoolbox.image import Image
 from sct_convert import convert
@@ -170,9 +168,9 @@ class MultiLabelRegistration:
         if self.fname_warp_target2template is not None:
             if self.fname_template_dest is None:
                 if self.template == 'MNI-Poly-AMU':
-                    self.fname_template_dest = os.path.join(path_sct, 'data', 'MNI-Poly-AMU', 'template', 'MNI-Poly-AMU_T2.nii.gz')
+                    self.fname_template_dest = os.path.join(sct.__data_dir__, 'MNI-Poly-AMU', 'template', 'MNI-Poly-AMU_T2.nii.gz')
                 elif self.template == 'PAM50':
-                    self.fname_template_dest = os.path.join(path_sct, 'data', 'PAM50', 'template', 'PAM50_t2.nii.gz')
+                    self.fname_template_dest = os.path.join(sct.__data_dir__, 'PAM50', 'template', 'PAM50_t2.nii.gz')
 
             self.fname_warp_gm2template = sct.extract_fname(self.fname_warp_target2template)[1] + '_reg_gm' + sct.extract_fname(self.fname_warp_target2template)[2]
             sct.run(['sct_concat_transfo',

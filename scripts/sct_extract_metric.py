@@ -37,7 +37,6 @@ from msct_parser import Parser
 
 # get path of the script and the toolbox
 path_script = os.path.dirname(__file__)
-path_sct = os.path.dirname(path_script)
 
 # constants
 ALMOST_ZERO = 0.000001
@@ -46,7 +45,7 @@ ALMOST_ZERO = 0.000001
 class Param:
     def __init__(self):
         self.method = 'wath'
-        self.path_label = os.path.join(path_sct, "data", "PAM50", "atlas")
+        self.path_label = os.path.join(sct.__data_dir__, "PAM50", "atlas")
         self.verbose = 1
         self.vertebral_levels = ''
         self.slices_of_interest = ''  # 2-element list corresponding to zmin:zmax. example: '5:8'. For all slices, leave empty.
@@ -76,7 +75,7 @@ def get_parser():
                       mandatory=False,
                       default_value=os.path.join("label", "atlas"),
                       check_file_exist=False,
-                      example=os.path.join(path_sct, 'data', 'atlas'))
+                      example=os.path.join(sct.__data_dir__, 'atlas'))
     parser.add_option(name='-l',
                       type_value='str',
                       description='Label IDs to extract the metric from. Default = all labels. Separate labels with ",". To select a group of consecutive labels use ":". Example: 1:3 is equivalent to 1,2,3. Maximum Likelihood (or MAP) is computed using all tracts, but only values of the selected tracts are reported.',
@@ -202,7 +201,7 @@ max: for each z-slice of the input data, extract the max value for each slice of
 
     str_section = """\n
 To list white matter atlas labels:
-""" + os.path.basename(__file__) + """ -f """ + os.path.join(path_sct, "data", "atlas") + """
+""" + os.path.basename(__file__) + """ -f """ + os.path.join(sct.__data_dir__, "atlas") + """
 
 To compute FA within labels 0, 2 and 3 within vertebral levels C2 to C7 using binary method:
 """ + os.path.basename(__file__) + """ -i dti_FA.nii.gz -f label/atlas -l 0,2,3 -v 2:7 -m bin"""

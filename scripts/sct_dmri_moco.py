@@ -210,9 +210,6 @@ def main(args=None):
     # reducing the number of CPU used for moco (see issue #201)
     os.environ["ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS"] = "1"
 
-    # get path of the toolbox
-    # status, param.path_sct = sct.run('echo $SCT_DIR')
-
     # check user arguments
     if not args:
         args = sys.argv[1:]

@@ -186,8 +186,6 @@ def segment_3d(model_fname, contrast_type, fname_in, fname_out):
 
 def deep_segmentation_MSlesion(fname_image, contrast_type, output_folder, ctr_algo='svm', ctr_file=None, brain_bool=True, remove_temp_files=1, verbose=1):
     """Pipeline."""
-    path_script = os.path.dirname(__file__)
-    path_sct = os.path.dirname(path_script)
 
     # create temporary folder with intermediate results
     sct.log.info("\nCreating temporary folder...")
@@ -227,7 +225,6 @@ def deep_segmentation_MSlesion(fname_image, contrast_type, output_folder, ctr_al
     contrast_type_ctr = contrast_type.split('_')[0]
     centerline_filename = find_centerline(algo=ctr_algo,
                                       image_fname=fname_res,
-                                      path_sct=path_sct,
                                       contrast_type=contrast_type_ctr,
                                       brain_bool=brain_bool,
                                       folder_output=tmp_folder_path,
@@ -255,7 +252,7 @@ def deep_segmentation_MSlesion(fname_image, contrast_type, output_folder, ctr_al
 
     # segment data using 3D convolutions
     sct.log.info("\nSegmenting the MS lesions using deep learning on 3D patches...")
-    segmentation_model_fname = os.path.join(path_sct, 'data', 'deepseg_lesion_models', '{}_lesion.h5'.format(contrast_type))
+    segmentation_model_fname = os.path.join(sct.__data_dir__, 'deepseg_lesion_models', '{}_lesion.h5'.format(contrast_type))
     fname_seg_crop_res = sct.add_suffix(fname_res3d, '_lesionseg')
     segment_3d(model_fname=segmentation_model_fname,
                 contrast_type=contrast_type,

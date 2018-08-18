@@ -32,8 +32,6 @@ from spinalcordtoolbox.image import Image
 from sct_image import split_data, concat_data
 import sct_apply_transfo
 
-path_sct = os.environ.get("SCT_DIR", os.path.dirname(os.path.dirname(__file__)))
-
 #=======================================================================================================================
 # moco Function
 #=======================================================================================================================

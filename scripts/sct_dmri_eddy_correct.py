@@ -27,9 +27,6 @@ import numpy as np
 from spinalcordtoolbox.image import Image
 import sct_utils as sct
 
-# get path of the toolbox
-path_sct = os.environ.get("SCT_DIR", os.path.dirname(os.path.dirname(__file__)))
-
 
 fsloutput = 'export FSLOUTPUTTYPE=NIFTI; '  # for faster processing, all outputs are in NIFTI
 
@@ -141,7 +138,7 @@ def eddy_correct(param):
     mat_eddy    = param.mat_eddy
 
     # Schedule file for FLIRT
-    schedule_file = os.path.join(path_sct , 'flirtsch', 'schedule_TxTy_2mmScale.sch')
+    schedule_file = os.path.join(sct.__sct_dir__, 'flirtsch', 'schedule_TxTy_2mmScale.sch')
     sct.printv(('\n.. Schedule file: ' + schedule_file), verbose)
 
     # Swap X-Y dimension (to have X as phase-encoding direction)

@@ -440,6 +440,10 @@ class Image(object):
         if hdr:
             hdr.set_data_shape(data.shape)
 
+        affine = hdr.get_best_affine()
+        hdr.set_qform(affine)
+        hdr.set_sform(affine)
+
         # nb. that copy() is important because if it were a memory map, save()
         # would corrupt it
         img = Nifti1Image(data.copy(), None, hdr)

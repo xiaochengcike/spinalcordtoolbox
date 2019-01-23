@@ -30,7 +30,7 @@ from msct_parser import Parser
 from sct_get_centerline import _call_viewer_centerline
 from spinalcordtoolbox.process_seg import extract_centerline
 
-import spinalcordtoolbox.resample.nipy_resample
+import spinalcordtoolbox.resample
 from spinalcordtoolbox.deepseg_sc.cnn_models import nn_architecture_seg, nn_architecture_ctr
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -468,7 +468,7 @@ def find_centerline(algo, image_fname, path_sct, contrast_type, brain_bool, fold
         input_resolution = Image(image_fname).dim[4:7]
         new_resolution = 'x'.join(['0.5', '0.5', str(input_resolution[2])])
 
-        spinalcordtoolbox.resample.nipy_resample.resample_file(image_fname, fname_res, new_resolution,
+        spinalcordtoolbox.resample.resample_file(image_fname, fname_res, new_resolution,
                                                                'mm', 'linear', verbose=0)
 
         # compute the heatmap
@@ -509,10 +509,10 @@ def find_centerline(algo, image_fname, path_sct, contrast_type, brain_bool, fold
         input_resolution = Image(image_fname).dim[4:7]
         new_resolution = 'x'.join(['0.5', '0.5', str(input_resolution[2])])
 
-        spinalcordtoolbox.resample.nipy_resample.resample_file(image_fname, fname_res, new_resolution,
+        spinalcordtoolbox.resample.resample_file(image_fname, fname_res, new_resolution,
                                                                'mm', 'linear', verbose=0)
 
-        spinalcordtoolbox.resample.nipy_resample.resample_file(centerline_filename, centerline_filename, new_resolution,
+        spinalcordtoolbox.resample.resample_file(centerline_filename, centerline_filename, new_resolution,
                                                                'mm', 'linear', verbose=0)
 
     if bool_2d:
@@ -701,7 +701,7 @@ def deep_segmentation_spinalcord(im_image, contrast_type, ctr_algo='cnn', ctr_fi
         # resample to 0.5mm isotropic
         fname_norm = sct.add_suffix(fname_orient, '_norm')
         fname_res3d = sct.add_suffix(fname_norm, '_resampled3d')
-        spinalcordtoolbox.resample.nipy_resample.resample_file(fname_norm, fname_res3d, '0.5x0.5x0.5',
+        spinalcordtoolbox.resample.resample_file(fname_norm, fname_res3d, '0.5x0.5x0.5',
                                                                             'mm', 'linear', verbose=0)
 
         # segment data using 3D convolutions
@@ -718,8 +718,8 @@ def deep_segmentation_spinalcord(im_image, contrast_type, ctr_algo='cnn', ctr_fi
         # TODO: does this need to be done (if already done below)?
         fname_seg_res2d = sct.add_suffix(fname_seg_crop_res, '_resampled2d')
         initial_2d_resolution = 'x'.join(['0.5', '0.5', str(input_resolution[2])])
-        spinalcordtoolbox.resample.nipy_resample.resample_nipy(fname_seg_crop_res, fname_seg_res2d,
-                                                               initial_2d_resolution, 'mm', 'linear', verbose=0)
+        spinalcordtoolbox.resample.resample_nipy(fname_seg_crop_res, fname_seg_res2d,
+                                                 initial_2d_resolution, 'mm', 'linear', verbose=0)
         seg_crop_data = Image(fname_seg_res2d).data
 
     # reconstruct the segmentation from the crop data
@@ -737,7 +737,7 @@ def deep_segmentation_spinalcord(im_image, contrast_type, ctr_algo='cnn', ctr_fi
     initial_resolution = 'x'.join([str(input_resolution[0]), str(input_resolution[1]), str(input_resolution[2])])
     fname_res_seg_downsamp = sct.add_suffix(fname_res_seg, '_downsamp')
 
-    spinalcordtoolbox.resample.nipy_resample.resample_file(fname_res_seg, fname_res_seg_downsamp, initial_resolution,
+    spinalcordtoolbox.resample.resample_file(fname_res_seg, fname_res_seg_downsamp, initial_resolution,
                                                            'mm', 'linear', verbose=0)
     im_image_res_seg_downsamp = Image(fname_res_seg_downsamp)
 
@@ -766,7 +766,7 @@ def generate_qc(im_image, im_seg, args, path_qc):
     """Generate a QC entry allowing to quickly review the segmentation process."""
     import spinalcordtoolbox.reports.qc as qc
     import spinalcordtoolbox.reports.slice as qcslice
-    from spinalcordtoolbox.resample.nipy_resample import resample_file
+    from spinalcordtoolbox.resample import resample_file
     # Resample to fixed resolution (see #2063)
     tmp_folder = sct.TempFolder()
     fname_image = im_image.absolutepath

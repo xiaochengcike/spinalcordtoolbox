@@ -18,19 +18,15 @@ import os
 import sys
 
 import numpy as np
-from scipy.ndimage.measurements import center_of_mass, label
-from scipy.ndimage import distance_transform_edt
 from scipy.interpolate.interpolate import interp1d
 
-from spinalcordtoolbox.centerline import optic
 import sct_utils as sct
 import spinalcordtoolbox.image as msct_image
 from spinalcordtoolbox.image import Image
 from msct_parser import Parser
 from sct_deepseg_sc import find_centerline, crop_image_around_centerline, uncrop_image, _normalize_data
 
-import spinalcordtoolbox.resample.nipy_resample
-from spinalcordtoolbox.deepseg_sc.cnn_models import nn_architecture_ctr
+import spinalcordtoolbox.resample
 
 BATCH_SIZE = 4
 
@@ -246,7 +242,7 @@ def deep_segmentation_MSlesion(fname_image, contrast_type, output_folder, ctr_al
     fname_norm = sct.add_suffix(fname_orient, '_norm')
     im_norm_in.save(fname_norm)
     fname_res3d = sct.add_suffix(fname_norm, '_resampled3d')
-    spinalcordtoolbox.resample.nipy_resample.resample_file(fname_norm, fname_res3d, '0.5x0.5x0.5',
+    spinalcordtoolbox.resample.resample_file(fname_norm, fname_res3d, '0.5x0.5x0.5',
                                                                'mm', 'linear', verbose=0)
 
     # segment data using 3D convolutions
@@ -261,7 +257,7 @@ def deep_segmentation_MSlesion(fname_image, contrast_type, output_folder, ctr_al
     # resample to the initial pz resolution
     fname_seg_res2d = sct.add_suffix(fname_seg_crop_res, '_resampled2d')
     initial_2d_resolution = 'x'.join(['0.5', '0.5', str(input_resolution[2])])
-    spinalcordtoolbox.resample.nipy_resample.resample_file(fname_seg_crop_res, fname_seg_res2d, initial_2d_resolution,
+    spinalcordtoolbox.resample.resample_file(fname_seg_crop_res, fname_seg_res2d, initial_2d_resolution,
                                                            'mm', 'linear', verbose=0)
     seg_crop_data = Image(fname_seg_res2d).data
 
@@ -279,7 +275,7 @@ def deep_segmentation_MSlesion(fname_image, contrast_type, output_folder, ctr_al
     sct.log.info("Resampling the segmentation to the original image resolution...")
     initial_resolution = 'x'.join([str(input_resolution[0]), str(input_resolution[1]), str(input_resolution[2])])
     fname_seg_RPI = sct.add_suffix(file_fname, '_RPI_seg')
-    spinalcordtoolbox.resample.nipy_resample.resample_file(fname_seg_res_RPI, fname_seg_RPI, initial_resolution,
+    spinalcordtoolbox.resample.resample_file(fname_seg_res_RPI, fname_seg_RPI, initial_resolution,
                                                            'mm', 'linear', verbose=0)
     seg_initres_nii = Image(fname_seg_RPI)
 

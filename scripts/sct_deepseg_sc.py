@@ -718,8 +718,8 @@ def deep_segmentation_spinalcord(im_image, contrast_type, ctr_algo='cnn', ctr_fi
         # TODO: does this need to be done (if already done below)?
         fname_seg_res2d = sct.add_suffix(fname_seg_crop_res, '_resampled2d')
         initial_2d_resolution = 'x'.join(['0.5', '0.5', str(input_resolution[2])])
-        spinalcordtoolbox.resample.nipy_resample.resample_image(fname_seg_crop_res, fname_seg_res2d,
-                                                                initial_2d_resolution, 'mm', 'linear', verbose=0)
+        spinalcordtoolbox.resample.nipy_resample.resample_nipy(fname_seg_crop_res, fname_seg_res2d,
+                                                               initial_2d_resolution, 'mm', 'linear', verbose=0)
         seg_crop_data = Image(fname_seg_res2d).data
 
     # reconstruct the segmentation from the crop data
